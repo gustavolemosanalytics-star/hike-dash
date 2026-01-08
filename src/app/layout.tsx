@@ -33,9 +33,9 @@ export default function RootLayout({
       >
         <FilterProvider>
           {/* Main Layout Container */}
-          <div className="flex h-screen bg-background overflow-hidden relative flex-col md:flex-row">
+          <div className="flex min-h-screen bg-background relative flex-col md:flex-row">
             <Sidebar />
-            <main className="flex-1 w-full relative h-full overflow-hidden flex flex-col">
+            <main className="flex-1 w-full relative min-h-full flex flex-col">
               {children}
             </main>
           </div>

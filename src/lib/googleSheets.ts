@@ -21,6 +21,12 @@ function getAuth() {
             }
 
             const credentials = JSON.parse(credentialsStr);
+
+            // Fix for private key newlines (very common issue in env vars)
+            if (credentials.private_key && typeof credentials.private_key === 'string') {
+                credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+            }
+
             console.log('GoogleAuth: Successfully parsed credentials for', credentials.client_email);
 
             return new google.auth.GoogleAuth({
