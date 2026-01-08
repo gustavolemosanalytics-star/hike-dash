@@ -28,17 +28,34 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         return cache.data;
     }
 
-    const sheetName = "'Bdados Tratada Fchto 2025'";
-    const range = `${sheetName}!A:Z`;
-    const rows = await getGoogleSheetsData(range);
-    console.log(`fetchTransactions: Fetched ${rows?.length || 0} rows from range "${range}"`);
+    const targetSheet = "'Bdados Tratada Fchto 2025'";
+    let range = `${targetSheet}!A:Z`;
+    let rows = await getGoogleSheetsData(range);
 
     if (!rows || rows.length < 2) {
-        console.warn(`fetchTransactions: No data found in range "${range}". Listing available sheets:`);
+        console.warn(`fetchTransactions: Failed to fetch from "${targetSheet}". Trying fallback search...`);
         const sheets = await getSheetNames();
-        console.warn(`fetchTransactions: Available sheets in spreadsheet:`, sheets);
+        console.log(`fetchTransactions: Found available sheets in spreadsheet:`, sheets);
+
+        // Find a sheet that starts with "Bdados" (the most likely name)
+        const possibleSheet = sheets.find(s => s?.toLowerCase().includes('bdados'));
+
+        if (possibleSheet) {
+            console.log(`fetchTransactions: Automatically selected best match sheet: "${possibleSheet}"`);
+            range = `'${possibleSheet}'!A:Z`;
+            rows = await getGoogleSheetsData(range);
+        } else if (sheets.length > 0) {
+            console.log(`fetchTransactions: No Bdados sheet found. Falling back to FIRST sheet: "${sheets[0]}"`);
+            range = `'${sheets[0]}'!A:Z`;
+            rows = await getGoogleSheetsData(range);
+        }
+    }
+
+    if (!rows || rows.length < 2) {
+        console.error('fetchTransactions: FAILED TO FIND ANY DATA IN ANY SHEET.');
         return [];
     }
+    console.log(`fetchTransactions: Successfully fetched ${rows.length} rows.`);
 
     const headers = rows[0];
     const dataRows = rows.slice(1);

@@ -6,14 +6,26 @@ const spreadsheetId = '179Ghzm8LgDW0gs6qhD7Ti_a_c1BER_4suBajPS3Wgi0';
 
 function getAuth() {
     // First try environment variable (for Vercel deployment)
-    if (process.env.GOOGLE_CREDENTIALS) {
+    const envCreds = process.env.GOOGLE_CREDENTIALS;
+    if (envCreds) {
         console.log('GoogleAuth: Found GOOGLE_CREDENTIALS environment variable');
         try {
-            let credentialsStr = process.env.GOOGLE_CREDENTIALS.trim();
+            let credentialsStr = envCreds.trim();
 
-            // Basic cleaning for JSON strings that might have been mangled
+            // Remove surround quotes if they exist (common Vercel/Copy-Paste issue)
+            if (credentialsStr.startsWith('"') && credentialsStr.endsWith('"')) {
+                credentialsStr = credentialsStr.substring(1, credentialsStr.length - 1);
+            }
+            // Remove surround single quotes
+            else if (credentialsStr.startsWith("'") && credentialsStr.endsWith("'")) {
+                credentialsStr = credentialsStr.substring(1, credentialsStr.length - 1);
+            }
+
+            // Handle accidental backslash escapes from some shells
+            credentialsStr = credentialsStr.replace(/\\"/g, '"');
+
+            // Handle base64 if it doesn't look like JSON
             if (!credentialsStr.startsWith('{')) {
-                // Check if it's base64 (common pattern for large env vars)
                 try {
                     const decoded = Buffer.from(credentialsStr, 'base64').toString();
                     if (decoded.startsWith('{')) credentialsStr = decoded;
@@ -22,19 +34,22 @@ function getAuth() {
 
             const credentials = JSON.parse(credentialsStr);
 
-            // Fix for private key newlines (very common issue in env vars)
+            // Crucial: Fix private key newlines
             if (credentials.private_key && typeof credentials.private_key === 'string') {
-                credentials.private_key = credentials.private_key.replace(/\\n/g, '\n');
+                // Ensure it has actual newlines, not literal \n strings
+                credentials.private_key = credentials.private_key.split('\\n').join('\n');
             }
 
-            console.log('GoogleAuth: Successfully parsed credentials for', credentials.client_email);
+            console.log('GoogleAuth: Successfully parsed credentials for service account:', credentials.client_email);
 
             return new google.auth.GoogleAuth({
                 credentials,
                 scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
             });
         } catch (e: any) {
-            console.error('GoogleAuth: CRITICAL ERROR parsing GOOGLE_CREDENTIALS:', e.message);
+            console.error('GoogleAuth: FATAL ERROR parsing GOOGLE_CREDENTIALS:', e.message);
+            // Log a censored version of the string to see if it's junk
+            console.log('GoogleAuth: Raw Env Var (first 20 chars):', envCreds.substring(0, 20) + '...');
         }
     } else {
         console.warn('GoogleAuth: GOOGLE_CREDENTIALS environment variable NOT found');

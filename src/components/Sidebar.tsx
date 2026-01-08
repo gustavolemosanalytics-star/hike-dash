@@ -100,7 +100,10 @@ export function Sidebar() {
     return (
         <>
             {/* Mobile Nav Top Bar - PORTAL-LIKE: Extremely simple and high z-index */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#1e293b] flex items-center justify-between px-6 z-[10000] shadow-2xl">
+            <div
+                className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#1e293b] flex items-center justify-between px-6 shadow-2xl"
+                style={{ zIndex: 100000 }}
+            >
                 <div className="relative w-32 h-8">
                     <Image
                         src="/imagem_topo.png"
@@ -131,7 +134,8 @@ export function Sidebar() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[1000] md:hidden"
+                        className="fixed inset-0 bg-black/60 backdrop-blur-md md:hidden"
+                        style={{ zIndex: 100001 }}
                     />
                 )}
             </AnimatePresence>
@@ -144,7 +148,8 @@ export function Sidebar() {
                         animate={{ x: 0 }}
                         exit={{ x: "-100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed top-0 left-0 bottom-0 w-[280px] bg-[#0B1120] z-[1001] md:hidden shadow-2xl border-r border-[#1e293b]"
+                        className="fixed top-0 left-0 bottom-0 w-[280px] bg-[#0B1120] md:hidden shadow-2xl border-r border-[#1e293b]"
+                        style={{ zIndex: 100002 }}
                     >
                         <SidebarContent pathname={pathname} isCollapsed={false} mobile={true} />
                     </motion.div>
