@@ -84,15 +84,37 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         docId: findIdx(['CNPJ', 'CPF', 'Documento', 'ID']),
     };
 
-    console.log(`fetchTransactions: Column mapping complete. Found 'Valor' at index ${idx.amount}`);
+    console.log(`fetchTransactions: Column mapping indices:`, idx);
 
-    const cleanCurrency = (val: string) => {
-        if (!val) return 0;
-        let clean = val.replace('R$', '').trim();
-        clean = clean.replace(/\./g, '');
-        clean = clean.replace(',', '.');
-        clean = clean.replace(/\s/g, '');
-        return parseFloat(clean) || 0;
+    // Check if critical columns were found
+    if (idx.amount === -1) {
+        console.error('fetchTransactions: CRITICAL: Could not find "Valor" column in headers:', headers);
+    }
+
+    const cleanCurrency = (val: any) => {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return val;
+
+        let str = String(val);
+        if (!str) return 0;
+
+        // Check if it's already a standard float string (e.g., "1234.56")
+        // but avoid false positives like "1.234" which might be thousands in Brazilian format
+        const clean = str.replace('R$', '').replace(/\s/g, '').trim();
+
+        // If it contains both comma and dot, it's definitely formatted
+        if (clean.includes(',') && clean.includes('.')) {
+            // Brazilian 1.234,56 -> 1234.56
+            return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
+        }
+
+        // If it contains only a comma, it's likely Brazilian decimal (e.g., "1234,56")
+        if (clean.includes(',') && !clean.includes('.')) {
+            return parseFloat(clean.replace(',', '.')) || 0;
+        }
+
+        // Default fallback (existing logic)
+        return parseFloat(clean.replace(/\./g, '').replace(',', '.')) || 0;
     };
 
     const data = dataRows.map(row => {

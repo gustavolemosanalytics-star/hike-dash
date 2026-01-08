@@ -99,30 +99,32 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Mobile Nav Top Bar - PORTAL-LIKE: Extremely simple and high z-index */}
+            {/* Mobile Nav Top Bar - EMERGENCY VISIBILITY FIX */}
             <div
-                className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#1e293b] flex items-center justify-between px-6 shadow-2xl"
-                style={{ zIndex: 100000 }}
+                className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#DCEEAA]/30 flex items-center justify-between px-6 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
+                style={{ zIndex: 100000, display: 'flex' }}
             >
-                <div className="relative w-32 h-8">
-                    <Image
-                        src="/imagem_topo.png"
-                        alt="Hike Logo"
-                        width={128}
-                        height={32}
-                        className="object-contain"
-                        priority
-                    />
+                <div className="flex items-center gap-3">
+                    <div className="relative w-28 h-8">
+                        <Image
+                            src="/imagem_topo.png"
+                            alt="Hike Logo"
+                            width={112}
+                            height={32}
+                            className="object-contain"
+                            priority
+                        />
+                    </div>
                 </div>
                 <button
                     onClick={() => {
                         console.log('Mobile menu button clicked');
                         setIsMobileMenuOpen(!isMobileMenuOpen);
                     }}
-                    className="p-2 text-[#DCEEAA] hover:bg-white/10 rounded-xl transition-all"
+                    className="p-2.5 text-[#DCEEAA] bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 active:scale-95"
                     aria-label="Toggle Menu"
                 >
-                    {isMobileMenuOpen ? <X size={32} /> : <Menu size={32} />}
+                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
 
