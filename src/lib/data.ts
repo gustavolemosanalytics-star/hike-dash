@@ -28,13 +28,13 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         return cache.data;
     }
 
-    const sheetName = "'Bdados Tratada Fchto 2025 '";
+    const sheetName = "'Bdados Tratada Fchto 2025'";
     const range = `${sheetName}!A:Z`;
     const rows = await getGoogleSheetsData(range);
-    console.log(`fetchTransactions: Fetched ${rows?.length || 0} rows from Google Sheets`);
+    console.log(`fetchTransactions: Fetched ${rows?.length || 0} rows from range "${range}"`);
 
     if (!rows || rows.length < 2) {
-        console.warn('fetchTransactions: No data or only headers found');
+        console.warn(`fetchTransactions: No data found in range "${range}"`);
         return [];
     }
 

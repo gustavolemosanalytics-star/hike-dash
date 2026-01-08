@@ -9,16 +9,31 @@ function getAuth() {
     if (process.env.GOOGLE_CREDENTIALS) {
         console.log('GoogleAuth: Found GOOGLE_CREDENTIALS environment variable');
         try {
-            const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+            let credentials;
+            if (typeof process.env.GOOGLE_CREDENTIALS === 'string') {
+                // If it starts with '{', it's likely a JSON string
+                if (process.env.GOOGLE_CREDENTIALS.trim().startsWith('{')) {
+                    credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
+                } else {
+                    // It might be a base64 encoded string or something else, but we expect JSON
+                    console.error('GoogleAuth: GOOGLE_CREDENTIALS is a string but does not look like JSON');
+                    throw new Error('GOOGLE_CREDENTIALS environment variable is not a valid JSON string');
+                }
+            } else {
+                credentials = process.env.GOOGLE_CREDENTIALS;
+            }
+
+            console.log('GoogleAuth: Initializing with service account:', credentials.client_email);
+
             return new google.auth.GoogleAuth({
                 credentials,
                 scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
             });
-        } catch (e) {
-            console.error('GoogleAuth: Error parsing GOOGLE_CREDENTIALS env var:', e);
+        } catch (e: any) {
+            console.error('GoogleAuth: Error processing GOOGLE_CREDENTIALS:', e.message);
         }
     } else {
-        console.log('GoogleAuth: GOOGLE_CREDENTIALS environment variable NOT found');
+        console.warn('GoogleAuth: GOOGLE_CREDENTIALS environment variable NOT found');
     }
 
     // Fallback to file (for local development)
@@ -30,10 +45,10 @@ function getAuth() {
             scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
     } else {
-        console.log('GoogleAuth: credentials.json file NOT found at', credentialsPath);
+        console.error('GoogleAuth: credentials.json file NOT found at', credentialsPath);
     }
 
-    throw new Error('No Google credentials found. Set GOOGLE_CREDENTIALS env var or add credentials.json file.');
+    throw new Error('No Google credentials found. Please set GOOGLE_CREDENTIALS env var or add credentials.json file.');
 }
 
 export async function getSheetNames() {
@@ -58,14 +73,21 @@ export async function getGoogleSheetsData(range: string) {
         const client = await auth.getClient();
         const sheets = google.sheets({ version: 'v4', auth: client as any });
 
+        console.log(`getGoogleSheetsData: Fetching range "${range}"...`);
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId,
             range,
         });
 
+        if (!response.data.values) {
+            console.warn(`getGoogleSheetsData: No data found for range "${range}"`);
+            return [];
+        }
+
+        console.log(`getGoogleSheetsData: Successfully fetched ${response.data.values.length} rows`);
         return response.data.values;
-    } catch (error) {
-        console.error('Error fetching Google Sheets data:', error);
+    } catch (error: any) {
+        console.error('Error fetching Google Sheets data:', error.message);
         return null;
     }
 }
