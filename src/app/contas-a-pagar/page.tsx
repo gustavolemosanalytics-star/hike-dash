@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { fetchTransactions } from "@/lib/data";
 import { ContasAPagarClient } from "@/components/ContasAPagarClient";
 
