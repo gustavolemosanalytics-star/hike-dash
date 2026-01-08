@@ -84,7 +84,24 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         docId: findIdx(['CNPJ', 'CPF', 'Documento', 'ID', 'Inscrição']),
     };
 
-    console.log('fetchTransactions: Mapping results:', Object.entries(idx).map(([k, v]) => `${k}:${v}`).join(', '));
+    // If amount is not found by name, try to FIND IT by content (fallback)
+    if (idx.amount === -1 && dataRows.length > 0) {
+        console.log('fetchTransactions: Amount header NOT found. Scanning first 5 rows for numeric/currency content...');
+        const firstRow = dataRows[0];
+        const contentBasedIdx = firstRow.findIndex((cell: any) => {
+            if (!cell) return false;
+            const str = String(cell);
+            // Matches numbers with currency or common numeric patterns
+            return str.includes('R$') || (str.includes(',') && str.match(/\d/));
+        });
+
+        if (contentBasedIdx !== -1) {
+            console.log(`fetchTransactions: Auto-detected AMOUNT column at index ${contentBasedIdx} based on content: "${firstRow[contentBasedIdx]}"`);
+            idx.amount = contentBasedIdx;
+        }
+    }
+
+    console.log('fetchTransactions: Final Mapping:', Object.entries(idx).map(([k, v]) => `${k}:${v}`).join(', '));
 
     // Check if critical columns were found
     if (idx.amount === -1 || idx.date === -1) {

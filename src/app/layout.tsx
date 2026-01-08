@@ -29,16 +29,28 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body
         suppressHydrationWarning
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background`}
       >
         <FilterProvider>
-          {/* Main Layout Container */}
-          <div className="flex min-h-screen bg-background relative flex-col md:flex-row">
-            <Sidebar />
-            <main className="flex-1 w-full relative min-h-full flex flex-col">
+          {/* CRITICAL: Sidebar must be outside of any overflow-hidden containers for mobile visibility */}
+          <Sidebar />
+
+          <div className="flex min-h-screen relative flex-col md:flex-row">
+            {/* Spacer for desktop sidebar placeholder if needed, but since Sidebar is absolute/fixed it's fine */}
+            <main className="flex-1 w-full relative min-h-full flex flex-col md:pl-20">
               {children}
             </main>
           </div>
+
+          {/* Diagnostic Global Script */}
+          <script dangerouslySetInnerHTML={{
+            __html: `
+            window.__HIKE_DIAGNOSTICS = {
+              version: "${new Date().getTime()}",
+              mobile: typeof window !== 'undefined' ? window.innerWidth < 768 : false
+            };
+            console.log('Hike Dash Initialized:', window.__HIKE_DIAGNOSTICS);
+          `}} />
         </FilterProvider>
       </body>
     </html>
