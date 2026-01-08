@@ -5,8 +5,6 @@ export default async function Home() {
   const transactions = await fetchTransactions();
 
   return (
-    <div className="max-w-[1600px] mx-auto">
-      <DashboardClient transactions={transactions} />
-    </div>
+    <DashboardClient transactions={transactions} />
   );
 }
