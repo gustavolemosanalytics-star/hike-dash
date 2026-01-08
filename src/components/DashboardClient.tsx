@@ -146,7 +146,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
         });
     }, [filteredData]);
 
-    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "Outros"))), [transactions]);
+    const allBUs = useMemo(() => Array.from(new Set(filteredData.map(t => t.bu || "Outros"))), [filteredData]);
     const buOptions = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
     const projectOptions = useMemo(() => Array.from(new Set(transactions.map(t => t.project || "N/D"))).sort(), [transactions]);
 
