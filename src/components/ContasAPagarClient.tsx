@@ -16,15 +16,19 @@ import { generateInsights } from "@/lib/insight-engine";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { PageLayout, PageHeader, PageContent } from "@/components/ui/PageLayout";
+import { useFilters } from "@/lib/filter-context";
 
 interface ContasAPagarProps {
     transactions: Transaction[];
 }
 
 export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
-    const [selectedBU, setSelectedBU] = useState<string>("All");
-    const [selectedProject, setSelectedProject] = useState<string>("All");
-    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const {
+        selectedBU,
+        selectedProject,
+        dateRange
+    } = useFilters();
+
     const [page, setPage] = useState(0);
 
     const filtered = useMemo(() => {
@@ -157,8 +161,11 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
         );
     }, [aggregated, byBU, suppliersData]);
 
-    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
-    const allProjects = useMemo(() => Array.from(new Set(transactions.map(t => t.project || "N/D"))).sort(), [transactions]);
+    // Removed allBUs and allProjects as they are not needed in this component anymore (Sidebar handles it) but they might be passed to sidebar if we lifted state, but here we just consume context. The Sidebar needs the OPTIONS. We'll deal with Sidebar options later.
+
+    // NOTE: In a real app, Sidebar should fetch options or we should have a global data context.
+    // For now, I'll assume the Sidebar has access to data or specific logic.
+    // IF Sidebar is in Layout, `children` is page.
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
@@ -176,12 +183,7 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
             <PageHeader
                 title="Contas a Pagar"
                 subtitle="Controle de obrigações e pagamentos"
-            >
-                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
-                <FilterDropdown label="Projeto" value={selectedProject} onChange={setSelectedProject} options={allProjects} />
-                <div className="h-8 w-[1px] bg-black/5 mx-1 hidden md:block"></div>
-                <DateRangePicker date={dateRange} setDate={setDateRange} />
-            </PageHeader>
+            />
 
             <PageContent>
                 {/* KPI Cards */}

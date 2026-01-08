@@ -42,11 +42,17 @@ export function PageHeader({
                 {subtitle && <p className="text-xs md:text-sm text-slate-500 font-medium truncate">{subtitle}</p>}
             </div>
 
-            {/* Filter Area (The "Navbar" controls) */}
-            <div className="flex items-center gap-3 flex-wrap justify-end">
-                {children}
-            </div>
-        </motion.header>
+            {children && <div className="flex items-center gap-3 flex-wrap justify-end content-center">{children}</div>}
+
+
+            {/* Motion Horizontal Line */}
+            <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+                className="absolute bottom-0 left-0 h-[1px] bg-gradient-to-r from-[#DCEEAA] via-slate-200 to-transparent"
+            />
+        </motion.header >
     )
 }
 

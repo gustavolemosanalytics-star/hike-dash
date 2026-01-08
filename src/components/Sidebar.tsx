@@ -9,6 +9,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import Image from "next/image";
+import { useFilters } from "@/lib/filter-context";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
+import { DateRangePicker } from "@/components/ui/DateRangePicker";
 
 const menuItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -19,6 +22,53 @@ const menuItems = [
     { name: "Projetos", href: "/projeto-cluster", icon: FolderTree },
     { name: "Pessoas", href: "/pessoas", icon: Users },
 ];
+
+// Internal component for filters to keep main component clean
+function SidebarFilters() {
+    const {
+        selectedBU, setSelectedBU,
+        selectedProject, setSelectedProject,
+        dateRange, setDateRange
+    } = useFilters();
+
+    // Simplified Options (In a real app, these should stream from data or context)
+    // For now, hardcoded common options or "All"
+    const buOptions = ["All", "Marketing", "Technology", "Sales", "HR"];
+    const projectOptions = ["All", "Alpha", "Beta", "Gamma"];
+
+    return (
+        <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-400">BU</label>
+                <select
+                    value={selectedBU}
+                    onChange={(e) => setSelectedBU(e.target.value)}
+                    className="bg-[#0B1120] text-white text-sm rounded-md border border-white/20 p-2 focus:ring-1 focus:ring-[#DCEEAA] focus:border-[#DCEEAA] outline-none"
+                >
+                    {buOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-400">Projeto</label>
+                <select
+                    value={selectedProject}
+                    onChange={(e) => setSelectedProject(e.target.value)}
+                    className="bg-[#0B1120] text-white text-sm rounded-md border border-white/20 p-2 focus:ring-1 focus:ring-[#DCEEAA] focus:border-[#DCEEAA] outline-none"
+                >
+                    {projectOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
+            </div>
+
+            <div className="flex flex-col gap-1">
+                <label className="text-xs text-gray-400">Período</label>
+                <div className="bg-[#0B1120] rounded-md border border-white/20 p-1">
+                    <DateRangePicker date={dateRange} setDate={setDateRange} />
+                </div>
+            </div>
+        </div>
+    )
+}
 
 export function Sidebar() {
     const pathname = usePathname();
@@ -40,19 +90,14 @@ export function Sidebar() {
 
             {/* Header / Logo */}
             <div className={`p-6 flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'} transition-all`}>
-                <div className="w-8 h-8 bg-[#DCEEAA] rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-[#1A1A1A] font-bold text-lg">H</span>
+                <div className={`relative flex-shrink-0 flex items-center justify-center ${isCollapsed ? 'w-10 h-10' : 'w-full h-12'}`}>
+                    <Image
+                        src="/LOGOS-HIKE_4.png"
+                        alt="Hike Logo"
+                        fill
+                        className="object-contain"
+                    />
                 </div>
-                {!isCollapsed && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="overflow-hidden whitespace-nowrap"
-                    >
-                        <h1 className="text-lg font-bold tracking-tight">Hike Dash</h1>
-                    </motion.div>
-                )}
             </div>
 
             {/* Navigation */}
@@ -91,34 +136,32 @@ export function Sidebar() {
                         </Link>
                     );
                 })}
+
+                {/* Filters Section in Sidebar */}
+                {!isCollapsed && (
+                    <div className="mt-6 px-3 space-y-4">
+                        <div className="h-[1px] bg-white/10 w-full mb-4"></div>
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Filtros Globais</h3>
+
+                        <div className="space-y-3">
+                            {/* Add Sidebar specific filters here content */}
+                            <SidebarFilters />
+                        </div>
+                    </div>
+                )}
             </nav>
 
 
 
             {/* Footer / Profile */}
             <div className="p-4 mt-2 border-t border-white/10 bg-[#0B1120]">
-                <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}>
-                    <div className="relative">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-purple-500 to-orange-500 p-[2px]">
-                            <div className="w-full h-full rounded-full bg-gray-800 flex items-center justify-center overflow-hidden">
-                                <span className="text-xs font-bold">GL</span>
-                            </div>
-                        </div>
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0B1120]"></div>
-                    </div>
-
-                    {!isCollapsed && (
-                        <div className="flex-1 overflow-hidden">
-                            <h4 className="text-sm font-medium text-white truncate">Gustavo Lemos</h4>
-                            <p className="text-xs text-gray-500 truncate">Admin</p>
-                        </div>
-                    )}
-
-                    {!isCollapsed && (
-                        <button className="text-gray-400 hover:text-white transition-colors">
-                            <Settings size={16} />
-                        </button>
-                    )}
+                <div className={`flex items-center justify-center relative ${isCollapsed ? 'h-10 w-10' : 'h-12 w-full'}`}>
+                    <Image
+                        src="/LOGOS-HIKE_6.png"
+                        alt="Admin Logo"
+                        fill
+                        className="object-contain"
+                    />
                 </div>
             </div>
         </motion.aside>

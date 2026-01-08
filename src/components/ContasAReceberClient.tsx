@@ -16,20 +16,25 @@ import { generateInsights } from "@/lib/insight-engine";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import { PageLayout, PageHeader, PageContent } from "@/components/ui/PageLayout";
+import { useFilters } from "@/lib/filter-context";
 
 interface ContasAReceberProps {
     transactions: Transaction[];
 }
 
 export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
-    const [selectedBU, setSelectedBU] = useState<string>("All");
-    const [selectedProject, setSelectedProject] = useState<string>("All");
-    const [dateRange, setDateRange] = useState<DateRange | undefined>();
+    const {
+        selectedBU,
+        selectedProject,
+        dateRange
+    } = useFilters();
+
     const [page, setPage] = useState(0);
 
     const filtered = useMemo(() => {
         return transactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
+            // Additional filtering if needed, e.g. Project
             if (selectedProject !== "All" && t.project !== selectedProject) return false;
 
             if (dateRange?.from && t.date) {
@@ -45,18 +50,21 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
     }, [transactions, selectedBU, selectedProject, dateRange]);
 
     const aggregated = useMemo(() => {
-        let receita = 0;
+        let receTotal = 0;
         let recebido = 0;
         let aReceber = 0;
 
         filtered.forEach(t => {
             if (t.type !== '1. Contas a Receber') return;
-            receita += t.amount;
-            if (t.paidAmount > 0) recebido += t.paidAmount;
+            receTotal += Math.abs(t.amount); // Use absolute for safety, though Receita should be positive
+            if (t.paidAmount < 0) recebido += Math.abs(t.paidAmount);
+            else if (t.paidAmount > 0) recebido += t.paidAmount;
+
             if (t.pendingAmount > 0) aReceber += t.pendingAmount;
+            else if (t.pendingAmount < 0) aReceber += Math.abs(t.pendingAmount);
         });
 
-        return { receita, recebido, aReceber };
+        return { receTotal, recebido, aReceber };
     }, [filtered]);
 
     const byBU = useMemo(() => {
@@ -66,8 +74,8 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
             const bu = t.bu || "Outros";
             if (!map.has(bu)) map.set(bu, { name: bu, recebido: 0, aReceber: 0 });
             const entry = map.get(bu);
-            if (t.paidAmount > 0) entry.recebido += t.paidAmount;
-            if (t.pendingAmount > 0) entry.aReceber += t.pendingAmount;
+            entry.recebido += Math.abs(t.paidAmount);
+            if (t.pendingAmount !== 0) entry.aReceber += Math.abs(t.pendingAmount);
         });
         return Array.from(map.values()).sort((a: any, b: any) => b.recebido - a.recebido);
     }, [filtered]);
@@ -86,8 +94,8 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
 
                 if (!map.has(key)) map.set(key, { name: key, recebido: 0, aReceber: 0, sortKey });
                 const entry = map.get(key);
-                if (t.paidAmount > 0) entry.recebido += t.paidAmount;
-                if (t.pendingAmount > 0) entry.aReceber += t.pendingAmount;
+                entry.recebido += Math.abs(t.paidAmount);
+                if (t.pendingAmount !== 0) entry.aReceber += Math.abs(t.pendingAmount);
             } catch (e) { }
         });
         return Array.from(map.values()).sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey));
@@ -109,7 +117,7 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
             buSet.add(bu);
 
             if (!entry[bu]) entry[bu] = 0;
-            entry[bu] += t.amount;
+            entry[bu] += Math.abs(t.amount);
         });
 
         const sorted = Array.from(map.values()).sort((a: any, b: any) => a.name.localeCompare(b.name));
@@ -133,8 +141,8 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
             const client = t.client || "Não Identificado";
             if (!map.has(client)) map.set(client, { name: client, recebido: 0, aReceber: 0 });
             const entry = map.get(client);
-            if (t.paidAmount > 0) entry.recebido += t.paidAmount;
-            if (t.pendingAmount > 0) entry.aReceber += t.pendingAmount;
+            entry.recebido += Math.abs(t.paidAmount);
+            if (t.pendingAmount !== 0) entry.aReceber += Math.abs(t.pendingAmount);
         });
         return Array.from(map.values()).sort((a: any, b: any) => b.recebido - a.recebido);
     }, [filtered]);
@@ -154,11 +162,10 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
         );
     }, [aggregated, byBU, clientsData]);
 
-    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
-    const allProjects = useMemo(() => Array.from(new Set(transactions.map(t => t.project || "N/D"))).sort(), [transactions]);
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
+
     const formatCompact = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", maximumFractionDigits: 1 }).format(val);
 
@@ -172,17 +179,12 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
             <PageHeader
                 title="Contas a Receber"
                 subtitle="Gestão de entradas e previsões"
-            >
-                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
-                <FilterDropdown label="Projeto" value={selectedProject} onChange={setSelectedProject} options={allProjects} />
-                <div className="h-8 w-[1px] bg-black/5 mx-1 hidden md:block"></div>
-                <DateRangePicker date={dateRange} setDate={setDateRange} />
-            </PageHeader>
+            />
 
             <PageContent>
                 {/* KPI Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <KPICard title="Receita (Total)" value={aggregated.receita} color="bg-[#E4E4E7]" textColor="text-foreground" />
+                    <KPICard title="Receita (Total)" value={aggregated.receTotal} color="bg-[#E4E4E7]" textColor="text-foreground" />
                     <KPICard title="Recebido" value={aggregated.recebido} color="bg-[#DCEEAA]" textColor="text-[#3A4A1C]" />
                     <KPICard title="A Receber" value={aggregated.aReceber} color="bg-[#E2E0D4]" textColor="text-[#5F6368]" />
                 </div>
