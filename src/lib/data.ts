@@ -29,7 +29,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
     }
 
     const targetSheet = "'Bdados Tratada Fchto 2025'";
-    let range = `${targetSheet}!A:Z`;
+    let range = `${targetSheet}!A:ZZ`;
     let rows = await getGoogleSheetsData(range);
 
     if (!rows || rows.length < 2) {
@@ -71,24 +71,28 @@ export async function fetchTransactions(): Promise<Transaction[]> {
     const idx = {
         date: findIdx(['Data']),
         type: findIdx(['Tipo']),
-        amount: findIdx(['Valor', 'Quantia']),
-        bu: findIdx(['BU', 'Unidade']),
+        amount: findIdx(['Valor', 'Quantia', 'Total', 'R$']),
+        bu: findIdx(['BU', 'Unidade', 'Business']),
         macro: findIdx(['Macro', 'Categoria']),
         group: findIdx(['Grupo']),
         project: findIdx(['Projeto']),
         cluster: findIdx(['Cluster']),
-        status: findIdx(['Status', 'Situação']),
-        paidAmount: findIdx(['Pago', 'Recebido', 'Liquidado']),
-        pendingAmount: findIdx(['Pagar', 'Receber', 'Pendente']),
-        client: findIdx(['Cliente', 'Fornecedor', 'Parceiro']),
-        docId: findIdx(['CNPJ', 'CPF', 'Documento', 'ID']),
+        status: findIdx(['Status', 'Situação', 'FIN']),
+        paidAmount: findIdx(['Pago', 'Recebido', 'Liquidado', 'Realizado']),
+        pendingAmount: findIdx(['Pagar', 'Receber', 'Pendente', 'Aberto']),
+        client: findIdx(['Cliente', 'Fornecedor', 'Parceiro', 'Nome']),
+        docId: findIdx(['CNPJ', 'CPF', 'Documento', 'ID', 'Inscrição']),
     };
 
-    console.log(`fetchTransactions: Column mapping indices:`, idx);
+    console.log('fetchTransactions: Mapping results:', Object.entries(idx).map(([k, v]) => `${k}:${v}`).join(', '));
 
     // Check if critical columns were found
-    if (idx.amount === -1) {
-        console.error('fetchTransactions: CRITICAL: Could not find "Valor" column in headers:', headers);
+    if (idx.amount === -1 || idx.date === -1) {
+        console.error('fetchTransactions: CRITICAL: Essential columns missing!', {
+            foundAmount: idx.amount,
+            foundDate: idx.date,
+            headers: headers.slice(0, 15) // Log first 15 headers for context
+        });
     }
 
     const cleanCurrency = (val: any) => {

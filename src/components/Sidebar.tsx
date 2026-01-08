@@ -99,33 +99,41 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Mobile Nav Top Bar - EMERGENCY VISIBILITY FIX */}
+            {/* Mobile Nav Top Bar - ABSOLUTE EMERGENCY FIX */}
             <div
-                className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#DCEEAA]/30 flex items-center justify-between px-6 shadow-[0_4px_20px_rgba(0,0,0,0.4)]"
-                style={{ zIndex: 100000, display: 'flex' }}
+                className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b-2 border-[#DCEEAA] flex items-center justify-between px-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
+                style={{ zIndex: 999999, display: 'flex !important' }}
             >
                 <div className="flex items-center gap-3">
-                    <div className="relative w-28 h-8">
+                    <div className="relative w-24 h-6">
                         <Image
                             src="/imagem_topo.png"
                             alt="Hike Logo"
-                            width={112}
-                            height={32}
+                            width={100}
+                            height={24}
                             className="object-contain"
                             priority
                         />
                     </div>
                 </div>
-                <button
-                    onClick={() => {
-                        console.log('Mobile menu button clicked');
-                        setIsMobileMenuOpen(!isMobileMenuOpen);
-                    }}
-                    className="p-2.5 text-[#DCEEAA] bg-white/5 hover:bg-white/10 rounded-xl transition-all border border-white/10 active:scale-95"
-                    aria-label="Toggle Menu"
-                >
-                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
-                </button>
+
+                <div className="flex items-center gap-2">
+                    {/* Diagnostic Indicator */}
+                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Nav Active" />
+
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            console.log('Mobile menu button clicked - Logic triggering');
+                            setIsMobileMenuOpen(!isMobileMenuOpen);
+                        }}
+                        className="p-2 text-[#DCEEAA] bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 active:scale-95 flex items-center justify-center"
+                        style={{ minWidth: '44px', minHeight: '44px' }}
+                        aria-label="Menu"
+                    >
+                        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    </button>
+                </div>
             </div>
 
             {/* Mobile Menu Backdrop */}
@@ -136,8 +144,8 @@ export function Sidebar() {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={() => setIsMobileMenuOpen(false)}
-                        className="fixed inset-0 bg-black/60 backdrop-blur-md md:hidden"
-                        style={{ zIndex: 100001 }}
+                        className="fixed inset-0 bg-black/80 backdrop-blur-xl md:hidden"
+                        style={{ zIndex: 1000000 }}
                     />
                 )}
             </AnimatePresence>
@@ -149,9 +157,9 @@ export function Sidebar() {
                         initial={{ x: "-100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "-100%" }}
-                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed top-0 left-0 bottom-0 w-[280px] bg-[#0B1120] md:hidden shadow-2xl border-r border-[#1e293b]"
-                        style={{ zIndex: 100002 }}
+                        transition={{ type: "spring", damping: 30, stiffness: 200 }}
+                        className="fixed top-0 left-0 bottom-0 w-[280px] bg-[#0B1120] md:hidden shadow-2xl border-r border-[#1e293b] flex flex-col"
+                        style={{ zIndex: 1000001 }}
                     >
                         <SidebarContent pathname={pathname} isCollapsed={false} mobile={true} />
                     </motion.div>
