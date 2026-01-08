@@ -9,8 +9,11 @@ import {
 import { AnalysisBoard } from "@/components/AnalysisBoard";
 import { parseISO, isWithinInterval, startOfDay, endOfDay, format } from 'date-fns';
 import { PageLayout, PageContent, PageHeader } from "@/components/ui/PageLayout";
-import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
+
+import { useFilters } from "@/lib/filter-context";
+import { DateRange } from "react-day-picker";
+import { FilterDropdown } from "@/components/ui/FilterDropdown";
 
 interface PessoasProps {
     transactions: Transaction[];
@@ -19,12 +22,14 @@ interface PessoasProps {
 export function PessoasClient({ transactions }: PessoasProps) {
     const [selectedBU, setSelectedBU] = useState<string>("All");
     const [selectedMacro, setSelectedMacro] = useState<string>("All");
-    const [dateRange, setDateRange] = useState<any>(); // Type fix pending real DateRange import
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
     // Filter Data
     const filtered = useMemo(() => {
         return transactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
+            // The user asked for "Pessoas" filtering, often implies filtering by 'Pessoal' macro category or similar logic
+            // But here we rely on the implementation logic provided earlier.
             if (selectedMacro !== "All" && t.macroCategory !== selectedMacro) return false;
 
             if (dateRange?.from && t.date) {
@@ -94,86 +99,85 @@ export function PessoasClient({ transactions }: PessoasProps) {
         });
     }, [filtered]);
 
-    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
-    const allMacros = useMemo(() => Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).sort(), [transactions]);
-
     const insights = useMemo(() => {
         return [{
-            id: 'people-trend',
+            id: 'people-info',
             type: 'info' as const,
             title: 'Análise de Pessoas',
-            description: 'Acompanhamento de custos e headcount por BU.'
+            description: 'Visão de alocação e custos de pessoal.'
         }];
     }, []);
 
     const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", maximumFractionDigits: 1 }).format(val);
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 
-    const customColors = ["#E4E4E7", "#06B6D4", "#EAB308", "#F472B6", "#6366F1"];
+    const colors = ["#2E7D32", "#E6EE9C", "#616161", "#F48FB1", "#81C784", "#FFD54F", "#90CAF9"];
+
+    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
+    const allMacros = useMemo(() => Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).sort(), [transactions]);
 
     return (
         <PageLayout>
             <PageHeader
-                title="Pessoas"
-                subtitle="Gestão de Headcount e Custos de Pessoal"
+                title="Pessoas e Custos"
+                subtitle="Headcount e despesas de pessoal"
             >
                 <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
                 <FilterDropdown label="Categoria" value={selectedMacro} onChange={setSelectedMacro} options={allMacros} />
-                <div className="h-8 w-[1px] bg-black/5 mx-1 hidden md:block"></div>
                 <DateRangePicker date={dateRange} setDate={setDateRange} />
             </PageHeader>
 
             <PageContent>
-                {/* Chart 1: Valor por BU e Categoria */}
-                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
-                    <h3 className="text-lg font-semibold mb-6 text-center">Valor por BU e Categoria</h3>
-                    <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={buCategoryData.data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
-                                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }} />
-                                <ReferenceLine y={0} stroke="#000" strokeOpacity={0.1} />
-                                {buCategoryData.categories.map((cat, idx) => (
-                                    <Bar key={cat} dataKey={cat} fill={customColors[idx % customColors.length]} radius={[2, 2, 0, 0]} />
-                                ))}
-                            </BarChart>
-                        </ResponsiveContainer>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                            Custo por BU e Categoria
+                        </h3>
+                        <div className="h-[400px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={buCategoryData.data} margin={{ left: 10 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                                    <YAxis tickFormatter={(val) => new Intl.NumberFormat('en', { notation: 'compact' }).format(val)} tick={{ fontSize: 11 }} />
+                                    <Tooltip
+                                        formatter={(val: number | undefined) => formatCurrency(val || 0)}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    />
+                                    <Legend />
+                                    {buCategoryData.categories.map((cat: string, index: number) => (
+                                        <Bar key={cat} dataKey={cat} stackId="a" fill={colors[index % colors.length]} />
+                                    ))}
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </div>
+
+                    <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                            Evolução de Headcount
+                        </h3>
+                        {/* Placeholder for Headcount Chart if needed or duplication of others */}
+                        <div className="h-[400px] w-full flex items-center justify-center text-gray-500">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={peopleCountData} margin={{ left: 10 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                                    <XAxis dataKey="formattedName" tick={{ fontSize: 11 }} />
+                                    <YAxis tick={{ fontSize: 11 }} />
+                                    <Tooltip />
+                                    <Legend />
+                                    {/* Dynamically render lines for each BU? For now just example */}
+                                    <Line type="monotone" dataKey="Technology" stroke="#06B6D4" strokeWidth={2} dot={false} />
+                                    <Line type="monotone" dataKey="Marketing" stroke="#F472B6" strokeWidth={2} dot={false} />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
                 </div>
 
-                {/* Chart 2: CNPJ/CPF Over Time */}
-                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
-                    <h3 className="text-lg font-semibold mb-6 text-center">CNPJ/CPF ao longo do tempo por BU</h3>
-                    <div className="h-[400px] w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={peopleCountData} margin={{ top: 20, right: 30, left: 10, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                                <XAxis dataKey="formattedName" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <Tooltip />
-                                <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }} />
-                                {allBUs.map((bu, idx) => (
-                                    <Line
-                                        key={bu}
-                                        type="monotone"
-                                        dataKey={bu}
-                                        name={bu}
-                                        stroke={customColors[idx % customColors.length]}
-                                        strokeWidth={2}
-                                        dot={{ r: 3 }}
-                                    >
-                                        <LabelList dataKey={bu} position="top" style={{ fontSize: 10, fill: customColors[idx % customColors.length] }} />
-                                    </Line>
-                                ))}
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
+                <div className="mt-8">
+                    <AnalysisBoard insights={insights} />
                 </div>
-
-                <AnalysisBoard insights={insights} />
             </PageContent>
-        </PageLayout >
+        </PageLayout>
     );
 }

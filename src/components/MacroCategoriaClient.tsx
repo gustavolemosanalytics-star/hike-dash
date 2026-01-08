@@ -13,24 +13,13 @@ import { parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { PageLayout, PageContent, PageHeader } from "@/components/ui/PageLayout";
 import { FilterDropdown } from "@/components/ui/FilterDropdown";
 
+import { useFilters } from "@/lib/filter-context";
+
 interface MacroCategoriaProps {
     transactions: Transaction[];
 }
 
 export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
-    // These states are now effectively "local" and will be moved to Context/Sidebar later if requested.
-    // For now, removing the Navbar filters means they are just default "All".
-    // Or did the user want them in the Sidebar *Component*?
-    // "eu quero que os controles de filtros fiquem na navbar lateral" -> Sidebar.
-
-    // Since I can't easily move state UP to the layout without a Context Provider,
-    // I will simulate the removal first, and then I would need to implement a Context.
-    // However, for this step, I will just remove the visual filters from the top as requested "sem atrapalhar".
-    // BUT the user said "fiquem na navbar lateral". 
-    // Implementing a Sidebar Filter requires a Global Store or lifting state.
-    // Given the constraints and the scope, I will create a `FilterContext` next.
-    // For now, I am reverting the visual changes to the PageHeader.
-
     const [selectedBU, setSelectedBU] = useState<string>("All");
     const [selectedType, setSelectedType] = useState<string>("All");
     const [selectedMacro, setSelectedMacro] = useState<string>("All");
@@ -40,11 +29,10 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
     const [page, setPage] = useState(0);
     const rowsPerPage = 8;
 
-    // ... (rest of logic remains exactly the same, just removing the JSX for filters)
-
     const filtered = useMemo(() => {
         return transactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
+            // Additional filtering if needed, e.g. Project
             if (selectedType !== "All" && t.type !== selectedType) return false;
             if (selectedMacro !== "All" && t.macroCategory !== selectedMacro) return false;
 
@@ -60,19 +48,21 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
         });
     }, [transactions, selectedBU, selectedType, selectedMacro, dateRange]);
 
-    // ... (Chart Data useMemos - copied from previous) ...
-    const categoryData = useMemo(() => {
+    const aggregated = useMemo(() => {
         const map = new Map();
         filtered.forEach(t => {
-            const cat = t.macroCategory || "N/D";
-            if (!cat) return;
-            if (!map.has(cat)) map.set(cat, { name: cat, value: 0 });
-            map.get(cat).value += t.amount;
+            const key = t.macroCategory || "Outros";
+            const val = map.get(key) || 0;
+            map.set(key, val + t.amount);
         });
-        let arr = Array.from(map.values());
+        return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
+    }, [filtered]);
+
+    const categoryData = useMemo(() => {
+        let arr = [...aggregated]; // Use aggregated directly
         arr.sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
         return arr;
-    }, [filtered]);
+    }, [aggregated]);
 
     const buMacroData = useMemo(() => {
         const buMap = new Map();
@@ -89,38 +79,35 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
 
     const tableData = useMemo(() => {
         const total = filtered.reduce((acc, t) => acc + t.amount, 0);
-        const map = new Map();
-        filtered.forEach(t => {
-            const cat = t.macroCategory || "N/D";
-            if (!map.has(cat)) map.set(cat, { name: cat, value: 0 });
-            map.get(cat).value += t.amount;
-        });
-        return Array.from(map.values())
+        return aggregated
             .map((item: any) => ({
                 ...item,
                 percent: total ? (item.value / total) * 100 : 0
             }))
             .sort((a, b) => b.value - a.value);
-    }, [filtered]);
+    }, [filtered, aggregated]);
 
     // Insights
     const insights = useMemo(() => {
-        const topCat = tableData.length > 0 ? tableData[0] : null;
-        return topCat ? [{
+        if (aggregated.length === 0) return [];
+        const top = [...aggregated].sort((a, b) => b.value - a.value)[0];
+        return [{
             id: 'top-cat',
             type: 'info' as const,
-            title: 'Principal Categoria',
-            description: `${topCat.name} representa ${(topCat.percent).toFixed(1)}% do volume total.`
-        }] : [];
-    }, [tableData]);
+            title: 'Maior Categoria',
+            description: `A maior categoria é ${top.name} com ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(top.value)}`
+        }];
+    }, [aggregated]);
 
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 
     const colors = ["#2E7D32", "#E6EE9C", "#616161", "#F48FB1", "#81C784", "#FFD54F", "#90CAF9"];
 
-    // Temporary: Just displaying without controls until Context is ready.
-    // User asked to move controls to sidebar. I will first CLEAN OUT the top controls.
+
+    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
+    const allTypes = ["1. Contas a Receber", "2. Contas a Pagar"];
+    const allMacros = useMemo(() => Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).sort(), [transactions]);
 
     return (
         <PageLayout>
@@ -128,10 +115,9 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                 title="MacroCategoria"
                 subtitle="Análise detalhada por categorias macro"
             >
-                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort()} />
-                <FilterDropdown label="Tipo" value={selectedType} onChange={setSelectedType} options={["1. Contas a Receber", "2. Contas a Pagar"]} />
-                <FilterDropdown label="Macro" value={selectedMacro} onChange={setSelectedMacro} options={Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).sort()} />
-                <div className="h-8 w-[1px] bg-black/5 mx-1 hidden md:block"></div>
+                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
+                <FilterDropdown label="Tipo" value={selectedType} onChange={setSelectedType} options={allTypes} />
+                <FilterDropdown label="Macro" value={selectedMacro} onChange={setSelectedMacro} options={allMacros} />
                 <DateRangePicker date={dateRange} setDate={setDateRange} />
             </PageHeader>
 

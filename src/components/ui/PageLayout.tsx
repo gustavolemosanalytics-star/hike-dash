@@ -1,11 +1,8 @@
 "use client";
 
 import { ReactNode } from "react";
-
 import { motion } from "framer-motion";
-
-// If lib/utils doesn't exist, I'll remove cn or polyfill. I'll check existence or just not use it yet.
-// Using standard className combine.
+import { Filter, Calendar } from "lucide-react";
 
 export function PageLayout({ children, className }: { children: ReactNode, className?: string }) {
     return (
@@ -30,29 +27,49 @@ export function PageHeader({
         <motion.header
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
             className={`
-                flex-shrink-0 bg-white border-b border-slate-200/60 
-                px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 
-                z-30 shadow-sm relative
+                flex-shrink-0 relative
                 ${className || ''}
             `}
         >
-            <div className="flex flex-col gap-0.5 min-w-0">
-                <h1 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight truncate">{title}</h1>
-                {subtitle && <p className="text-xs md:text-sm text-slate-500 font-medium truncate">{subtitle}</p>}
+            {/* Main Header Section */}
+            <div className="bg-gradient-to-br from-white via-white to-slate-50 border-b border-slate-200/60 backdrop-blur-sm">
+                <div className="px-6 py-5">
+                    {/* Title Section */}
+                    <div className="flex flex-col gap-1 mb-4">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent tracking-tight">
+                            {title}
+                        </h1>
+                        {subtitle && (
+                            <p className="text-sm text-slate-500 font-medium">
+                                {subtitle}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Filters Section */}
+                    {children && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2, duration: 0.4 }}
+                            className="flex items-center gap-3 flex-wrap"
+                        >
+                            {children}
+                        </motion.div>
+                    )}
+                </div>
+
+                {/* Animated Bottom Border */}
+                <motion.div
+                    initial={{ scaleX: 0 }}
+                    animate={{ scaleX: 1 }}
+                    transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
+                    className="h-[2px] bg-gradient-to-r from-[#DCEEAA] via-[#DCEEAA]/50 to-transparent origin-left"
+                />
             </div>
-
-            {children && <div className="flex items-center gap-3 flex-wrap justify-end content-center">{children}</div>}
-
-
-            {/* Motion Horizontal Line */}
-            <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "100%" }}
-                transition={{ delay: 0.3, duration: 0.8, ease: "easeOut" }}
-                className="absolute bottom-0 left-0 h-[1px] bg-gradient-to-r from-[#DCEEAA] via-slate-200 to-transparent"
-            />
-        </motion.header >
+        </motion.header>
     )
 }
 

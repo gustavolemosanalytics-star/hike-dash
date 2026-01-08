@@ -23,11 +23,9 @@ interface ContasAReceberProps {
 }
 
 export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
-    const {
-        selectedBU,
-        selectedProject,
-        dateRange
-    } = useFilters();
+    const [selectedBU, setSelectedBU] = useState<string>("All");
+    const [selectedProject, setSelectedProject] = useState<string>("All");
+    const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
     const [page, setPage] = useState(0);
 
@@ -174,12 +172,19 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
         return colors[index % colors.length];
     }
 
+    const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
+    const allProjects = useMemo(() => Array.from(new Set(transactions.map(t => t.project || "N/D"))).sort(), [transactions]);
+
     return (
         <PageLayout>
             <PageHeader
                 title="Contas a Receber"
                 subtitle="Gestão de entradas e previsões"
-            />
+            >
+                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
+                <FilterDropdown label="Projeto" value={selectedProject} onChange={setSelectedProject} options={allProjects} />
+                <DateRangePicker date={dateRange} setDate={setDateRange} />
+            </PageHeader>
 
             <PageContent>
                 {/* KPI Cards */}

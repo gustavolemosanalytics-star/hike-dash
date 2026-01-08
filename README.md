@@ -1,36 +1,104 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hike Dashboard
 
-## Getting Started
+Dashboard financeiro moderno construído com Next.js, React e TypeScript.
 
-First, run the development server:
+## 🚀 Getting Started
+
+### Desenvolvimento Local
+
+Primeiro, instale as dependências:
+
+```bash
+npm install
+```
+
+Execute o servidor de desenvolvimento:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver o resultado.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build de Produção
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Para criar uma build de produção:
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Para executar a build de produção localmente:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 📦 Deploy no Vercel
 
-## Deploy on Vercel
+### Passo 1: Criar Conta no Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Acesse [vercel.com](https://vercel.com)
+2. Crie uma conta ou faça login
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Passo 2: Conectar Repositório
+
+1. No dashboard do Vercel, clique em "Add New Project"
+2. Importe seu repositório do GitHub/GitLab/Bitbucket
+3. Ou faça deploy direto via Vercel CLI:
+
+```bash
+npm i -g vercel
+vercel
+```
+
+### Passo 3: Configurar Variáveis de Ambiente (se necessário)
+
+1. No dashboard do projeto no Vercel, vá em "Settings" > "Environment Variables"
+2. Adicione as variáveis necessárias (veja `.env.example`)
+
+### Passo 4: Deploy
+
+O Vercel fará deploy automaticamente:
+- **Production**: Quando você fizer push para a branch `main`
+- **Preview**: Para cada pull request
+
+## 🛠️ Tecnologias
+
+- **Framework**: Next.js 15
+- **Linguagem**: TypeScript
+- **Estilização**: Tailwind CSS
+- **Animações**: Framer Motion
+- **Gráficos**: Recharts
+- **Datas**: date-fns, react-day-picker
+
+## 📁 Estrutura do Projeto
+
+```
+hike-dash/
+├── src/
+│   ├── app/              # Pages e rotas (App Router)
+│   ├── components/       # Componentes React
+│   │   ├── ui/          # Componentes de UI reutilizáveis
+│   │   └── ...          # Componentes de páginas
+│   └── lib/             # Utilitários e helpers
+├── public/              # Arquivos estáticos
+└── ...
+```
+
+## 📝 Scripts Disponíveis
+
+- `npm run dev` - Inicia servidor de desenvolvimento
+- `npm run build` - Cria build de produção
+- `npm start` - Executa build de produção
+- `npm run lint` - Executa linter
+
+## 🔧 Configuração
+
+### Variáveis de Ambiente
+
+Copie `.env.example` para `.env.local` e configure as variáveis necessárias.
+
+## 📄 Licença
+
+Este projeto é privado e proprietário.

@@ -2,13 +2,16 @@ import { motion } from "framer-motion";
 
 interface KPICardProps {
     title: string;
-    value: number;
+    value: number | string;
     color: string;
     textColor: string;
+    isPercent?: boolean; // Optional, can be used for styling if needed, currently unused but good for compatibility
 }
 
 export function KPICard({ title, value, color, textColor }: KPICardProps) {
-    const formatted = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value);
+    const formatted = typeof value === 'number'
+        ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value)
+        : value;
 
     return (
         <motion.div
