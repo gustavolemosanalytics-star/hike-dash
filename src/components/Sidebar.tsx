@@ -99,22 +99,26 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Mobile Nav Top Bar - Extra High Z-Index */}
-            <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#1e293b] flex items-center justify-between px-6 z-[999]">
-                <div className="relative w-28 h-8">
+            {/* Mobile Nav Top Bar - CRITICAL: Visible only on mobile */}
+            <div className="flex md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#1e293b] items-center justify-between px-6 z-[9999]">
+                <div className="relative w-32 h-10">
                     <Image
                         src="/imagem_topo.png"
                         alt="Hike Logo"
                         fill
                         className="object-contain"
+                        priority
                     />
                 </div>
                 <button
-                    onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                    className="p-2.5 text-white hover:bg-white/10 rounded-xl transition-colors active:scale-90"
+                    onClick={() => {
+                        console.log('Mobile menu button clicked');
+                        setIsMobileMenuOpen(!isMobileMenuOpen);
+                    }}
+                    className="p-3 text-white hover:bg-white/10 rounded-xl transition-all shadow-lg active:scale-95"
                     aria-label="Toggle Menu"
                 >
-                    {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                    {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
 

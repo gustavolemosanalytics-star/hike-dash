@@ -32,9 +32,10 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <FilterProvider>
-          <div className="flex h-screen bg-background overflow-hidden relative">
+          {/* Main Layout Container */}
+          <div className="flex h-screen bg-background overflow-hidden relative flex-col md:flex-row">
             <Sidebar />
-            <main className="flex-1 w-full relative h-full overflow-hidden">
+            <main className="flex-1 w-full relative h-full overflow-hidden flex flex-col">
               {children}
             </main>
           </div>

@@ -9,28 +9,26 @@ function getAuth() {
     if (process.env.GOOGLE_CREDENTIALS) {
         console.log('GoogleAuth: Found GOOGLE_CREDENTIALS environment variable');
         try {
-            let credentials;
-            if (typeof process.env.GOOGLE_CREDENTIALS === 'string') {
-                // If it starts with '{', it's likely a JSON string
-                if (process.env.GOOGLE_CREDENTIALS.trim().startsWith('{')) {
-                    credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
-                } else {
-                    // It might be a base64 encoded string or something else, but we expect JSON
-                    console.error('GoogleAuth: GOOGLE_CREDENTIALS is a string but does not look like JSON');
-                    throw new Error('GOOGLE_CREDENTIALS environment variable is not a valid JSON string');
-                }
-            } else {
-                credentials = process.env.GOOGLE_CREDENTIALS;
+            let credentialsStr = process.env.GOOGLE_CREDENTIALS.trim();
+
+            // Basic cleaning for JSON strings that might have been mangled
+            if (!credentialsStr.startsWith('{')) {
+                // Check if it's base64 (common pattern for large env vars)
+                try {
+                    const decoded = Buffer.from(credentialsStr, 'base64').toString();
+                    if (decoded.startsWith('{')) credentialsStr = decoded;
+                } catch (e) { }
             }
 
-            console.log('GoogleAuth: Initializing with service account:', credentials.client_email);
+            const credentials = JSON.parse(credentialsStr);
+            console.log('GoogleAuth: Successfully parsed credentials for', credentials.client_email);
 
             return new google.auth.GoogleAuth({
                 credentials,
                 scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
             });
         } catch (e: any) {
-            console.error('GoogleAuth: Error processing GOOGLE_CREDENTIALS:', e.message);
+            console.error('GoogleAuth: CRITICAL ERROR parsing GOOGLE_CREDENTIALS:', e.message);
         }
     } else {
         console.warn('GoogleAuth: GOOGLE_CREDENTIALS environment variable NOT found');

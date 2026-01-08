@@ -1,4 +1,4 @@
-import { getGoogleSheetsData } from './googleSheets';
+import { getGoogleSheetsData, getSheetNames } from './googleSheets';
 import { parse, isValid } from 'date-fns';
 
 export interface Transaction {
@@ -34,7 +34,9 @@ export async function fetchTransactions(): Promise<Transaction[]> {
     console.log(`fetchTransactions: Fetched ${rows?.length || 0} rows from range "${range}"`);
 
     if (!rows || rows.length < 2) {
-        console.warn(`fetchTransactions: No data found in range "${range}"`);
+        console.warn(`fetchTransactions: No data found in range "${range}". Listing available sheets:`);
+        const sheets = await getSheetNames();
+        console.warn(`fetchTransactions: Available sheets in spreadsheet:`, sheets);
         return [];
     }
 
