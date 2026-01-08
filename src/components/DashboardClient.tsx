@@ -30,7 +30,10 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
     const [page, setPage] = useState(0);
     const rowsPerPage = 5;
 
+    console.log('DashboardClient: Rendering with transactions:', transactions?.length || 0);
+
     const filteredData = useMemo(() => {
+        if (!transactions) return [];
         return transactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
             if (selectedProject !== "All" && t.project !== selectedProject) return false;
@@ -164,6 +167,14 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
 
     return (
         <PageLayout>
+            {/* Debug Indicator - REMOVE IN PROD */}
+            {(!transactions || transactions.length === 0) && (
+                <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4" role="alert">
+                    <p className="font-bold">No Data Loaded</p>
+                    <p>Check console logs for Google Sheets errors.</p>
+                </div>
+            )}
+
             <PageHeader
                 title="Receitas, Despesas e Custos"
                 subtitle="Visão geral da performance financeira"
