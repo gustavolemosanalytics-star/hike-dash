@@ -198,7 +198,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
                         <span className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">Margem</span>
                         <span className={`text-3xl font-bold tracking-tight ${aggregated.margem >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                            {aggregated.margem.toFixed(2)}%
+                            {isNaN(aggregated.margem) ? '0.00' : aggregated.margem.toFixed(2)}%
                         </span>
                     </motion.div>
                 </div>
@@ -235,7 +235,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                             <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.despesa)}</td>
                                             <td className="px-4 py-3 text-right font-semibold text-green-600">{formatCurrency(row.resultado)}</td>
                                             <td className={`px-4 py-3 text-right ${row.margem >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                {row.margem.toFixed(2)}%
+                                                {isNaN(row.margem) ? '0.00' : row.margem.toFixed(2)}%
                                             </td>
                                         </tr>
                                     ))}
@@ -331,7 +331,9 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
 
 // Helper
 function GaugeChart({ value, target }: { value: number, target: number }) {
-    const percentage = Math.min(100, Math.max(0, (value / target) * 100));
+    const safeValue = isNaN(value) ? 0 : value;
+    const safeTarget = isNaN(target) || target === 0 ? 1 : target; // Avoid div by zero
+    const percentage = Math.min(100, Math.max(0, (safeValue / safeTarget) * 100));
     const rotation = (percentage / 100) * 180;
 
     return (
@@ -339,7 +341,7 @@ function GaugeChart({ value, target }: { value: number, target: number }) {
             <div className="absolute top-0 left-0 w-full h-full bg-slate-200 rounded-t-full"></div>
             <motion.div
                 initial={{ rotate: 0 }}
-                animate={{ rotate: rotation }}
+                animate={{ rotate: isNaN(rotation) ? 0 : rotation }}
                 transition={{ duration: 1, type: "spring" }}
                 className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-green-400 to-green-600 origin-bottom rounded-t-full"
                 style={{ transformOrigin: "bottom center" }}
