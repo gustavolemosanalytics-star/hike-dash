@@ -31,11 +31,16 @@ export async function fetchTransactions(): Promise<Transaction[]> {
     const sheetName = "'Bdados Tratada Fchto 2025 '";
     const range = `${sheetName}!A:Z`;
     const rows = await getGoogleSheetsData(range);
+    console.log(`fetchTransactions: Fetched ${rows?.length || 0} rows from Google Sheets`);
 
-    if (!rows || rows.length < 2) return [];
+    if (!rows || rows.length < 2) {
+        console.warn('fetchTransactions: No data or only headers found');
+        return [];
+    }
 
     const headers = rows[0];
     const dataRows = rows.slice(1);
+    console.log(`fetchTransactions: Processing ${dataRows.length} data rows`);
 
     const idx = {
         date: headers.indexOf('Data'),
