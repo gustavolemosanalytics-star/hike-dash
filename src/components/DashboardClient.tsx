@@ -298,9 +298,9 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                     </div>
                 </div>
 
-                <div className="glass-card rounded-2xl p-6 border border-white/40 min-h-[400px] flex flex-col">
+                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
                     <h3 className="text-lg font-semibold mb-6">Resultado ao longo do tempo por BU</h3>
-                    <div className="flex-1 w-full min-h-0">
+                    <div className="h-[350px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={timeSeriesData} margin={{ left: 10, right: 20 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
