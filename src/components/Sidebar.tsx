@@ -99,10 +99,10 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Mobile Nav Top Bar - ABSOLUTE EMERGENCY FIX */}
+            {/* Mobile Nav Top Bar */}
             <div
-                className="md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b-2 border-[#DCEEAA] flex items-center justify-between px-6 shadow-[0_10px_30px_rgba(0,0,0,0.5)]"
-                style={{ zIndex: 999999, display: 'flex !important' }}
+                className="flex md:hidden fixed top-0 left-0 right-0 h-16 bg-[#0F172A] border-b border-[#1e293b] items-center justify-between px-6 shadow-xl"
+                style={{ zIndex: 100 }}
             >
                 <div className="flex items-center gap-3">
                     <div className="relative w-12 h-3">
@@ -118,17 +118,12 @@ export function Sidebar() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Diagnostic Indicator */}
-                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Nav Active" />
-
                     <button
                         onClick={(e) => {
                             e.preventDefault();
-                            console.log('Mobile menu button clicked - Logic triggering');
                             setIsMobileMenuOpen(!isMobileMenuOpen);
                         }}
-                        className="p-2 text-[#DCEEAA] bg-white/10 hover:bg-white/20 rounded-lg border border-white/20 active:scale-95 flex items-center justify-center"
-                        style={{ minWidth: '44px', minHeight: '44px' }}
+                        className="p-2 text-[#DCEEAA] hover:bg-white/10 rounded-lg transition-colors active:scale-95 flex items-center justify-center border border-white/10"
                         aria-label="Menu"
                     >
                         {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
