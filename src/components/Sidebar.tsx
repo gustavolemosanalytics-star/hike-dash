@@ -105,12 +105,12 @@ export function Sidebar() {
                 style={{ zIndex: 999999, display: 'flex !important' }}
             >
                 <div className="flex items-center gap-3">
-                    <div className="relative w-24 h-6">
+                    <div className="relative w-12 h-3">
                         <Image
                             src="/imagem_topo.png"
                             alt="Hike Logo"
-                            width={100}
-                            height={24}
+                            width={50}
+                            height={12}
                             className="object-contain"
                             priority
                         />
