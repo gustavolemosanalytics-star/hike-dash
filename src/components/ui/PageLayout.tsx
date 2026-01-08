@@ -6,7 +6,7 @@ import { Filter, Calendar } from "lucide-react";
 
 export function PageLayout({ children, className }: { children: ReactNode, className?: string }) {
     return (
-        <div className={`flex flex-col h-[100dvh] w-full bg-[#F8FAFC] overflow-hidden ${className || ''}`}>
+        <div className={`flex flex-col h-[100dvh] w-full bg-[#F8FAFC] overflow-hidden pt-16 md:pt-0 ${className || ''}`}>
             {children}
         </div>
     )

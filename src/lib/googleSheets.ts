@@ -7,6 +7,7 @@ const spreadsheetId = '179Ghzm8LgDW0gs6qhD7Ti_a_c1BER_4suBajPS3Wgi0';
 function getAuth() {
     // First try environment variable (for Vercel deployment)
     if (process.env.GOOGLE_CREDENTIALS) {
+        console.log('GoogleAuth: Found GOOGLE_CREDENTIALS environment variable');
         try {
             const credentials = JSON.parse(process.env.GOOGLE_CREDENTIALS);
             return new google.auth.GoogleAuth({
@@ -14,17 +15,22 @@ function getAuth() {
                 scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
             });
         } catch (e) {
-            console.error('Error parsing GOOGLE_CREDENTIALS env var:', e);
+            console.error('GoogleAuth: Error parsing GOOGLE_CREDENTIALS env var:', e);
         }
+    } else {
+        console.log('GoogleAuth: GOOGLE_CREDENTIALS environment variable NOT found');
     }
 
     // Fallback to file (for local development)
     const credentialsPath = path.join(process.cwd(), 'credentials.json');
     if (fs.existsSync(credentialsPath)) {
+        console.log('GoogleAuth: Found credentials.json file at', credentialsPath);
         return new google.auth.GoogleAuth({
             keyFile: credentialsPath,
             scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
         });
+    } else {
+        console.log('GoogleAuth: credentials.json file NOT found at', credentialsPath);
     }
 
     throw new Error('No Google credentials found. Set GOOGLE_CREDENTIALS env var or add credentials.json file.');
