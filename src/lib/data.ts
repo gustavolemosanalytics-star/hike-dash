@@ -61,22 +61,30 @@ export async function fetchTransactions(): Promise<Transaction[]> {
     const dataRows = rows.slice(1);
     console.log(`fetchTransactions: Processing ${dataRows.length} data rows`);
 
-    const idx = {
-        date: headers.indexOf('Data'),
-        type: headers.indexOf('Tipo'),
-        amount: headers.indexOf('Valor'),
-        bu: headers.indexOf('BU'),
-        macro: headers.indexOf('MacroCategoria'),
-        group: headers.indexOf('Grupo'),
-        project: headers.indexOf('Projeto'),
-        cluster: headers.indexOf('Cluster'),
-        status: headers.indexOf('Status FIN'),
-        paidAmount: headers.indexOf('Pago ou Recebido'),
-        pendingAmount: headers.indexOf('A Pagar ou Receber'),
-        client: headers.indexOf('Cliente ou Fornecedor'),
-        // Try to find CNPJ/CPF column
-        docId: headers.findIndex((h: string) => h.includes('CNPJ') || h.includes('CPF') || h.includes('Documento')),
+    // Flexible index finder helper
+    const findIdx = (possibleNames: string[]) => {
+        return headers.findIndex((h: string) =>
+            possibleNames.some(name => h.toLowerCase().includes(name.toLowerCase()))
+        );
     };
+
+    const idx = {
+        date: findIdx(['Data']),
+        type: findIdx(['Tipo']),
+        amount: findIdx(['Valor', 'Quantia']),
+        bu: findIdx(['BU', 'Unidade']),
+        macro: findIdx(['Macro', 'Categoria']),
+        group: findIdx(['Grupo']),
+        project: findIdx(['Projeto']),
+        cluster: findIdx(['Cluster']),
+        status: findIdx(['Status', 'Situação']),
+        paidAmount: findIdx(['Pago', 'Recebido', 'Liquidado']),
+        pendingAmount: findIdx(['Pagar', 'Receber', 'Pendente']),
+        client: findIdx(['Cliente', 'Fornecedor', 'Parceiro']),
+        docId: findIdx(['CNPJ', 'CPF', 'Documento', 'ID']),
+    };
+
+    console.log(`fetchTransactions: Column mapping complete. Found 'Valor' at index ${idx.amount}`);
 
     const cleanCurrency = (val: string) => {
         if (!val) return 0;
