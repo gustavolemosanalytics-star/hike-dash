@@ -48,11 +48,27 @@ function getAuth() {
             });
         } catch (e: any) {
             console.error('GoogleAuth: FATAL ERROR parsing GOOGLE_CREDENTIALS:', e.message);
-            // Log a censored version of the string to see if it's junk
             console.log('GoogleAuth: Raw Env Var (first 20 chars):', envCreds.substring(0, 20) + '...');
         }
+    }
+
+    // Plan B: Try individual environment variables (Common backup for Vercel)
+    if (process.env.GOOGLE_SHEETS_CLIENT_EMAIL && process.env.GOOGLE_SHEETS_PRIVATE_KEY) {
+        console.log('GoogleAuth: Found individual email/key environment variables. Using Plan B.');
+        try {
+            const privateKey = process.env.GOOGLE_SHEETS_PRIVATE_KEY.split('\\n').join('\n');
+            return new google.auth.GoogleAuth({
+                credentials: {
+                    client_email: process.env.GOOGLE_SHEETS_CLIENT_EMAIL,
+                    private_key: privateKey,
+                },
+                scopes: ['https://www.googleapis.com/auth/spreadsheets.readonly'],
+            });
+        } catch (e: any) {
+            console.error('GoogleAuth: Error using individual env vars:', e.message);
+        }
     } else {
-        console.warn('GoogleAuth: GOOGLE_CREDENTIALS environment variable NOT found');
+        console.warn('GoogleAuth: GOOGLE_CREDENTIALS or individual params not found in environment.');
     }
 
     // Fallback to file (for local development)
