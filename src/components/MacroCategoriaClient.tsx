@@ -160,6 +160,48 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                         </div>
                     </div>
                 </div>
+
+                {/* Tabela por MacroCategoria */}
+                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                        <div className="w-1 h-5 bg-[#DCEEAA] rounded-full"></div>
+                        Tabela por MacroCategoria
+                    </h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-black/5 text-xs uppercase font-semibold text-secondary-foreground">
+                                <tr>
+                                    <th className="px-4 py-3 text-left">MacroCategoria</th>
+                                    <th className="px-4 py-3 text-right">Valor</th>
+                                    <th className="px-4 py-3 text-right">% do total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5">
+                                {tableData.map((row: any, i: number) => (
+                                    <tr key={i} className="hover:bg-white/40 transition-colors">
+                                        <td className="px-4 py-3 font-medium">{row.name}</td>
+                                        <td className="px-4 py-3 text-right">{formatCurrency(row.value)}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <div
+                                                    className="h-3 rounded-sm"
+                                                    style={{
+                                                        width: `${Math.min(100, Math.abs(row.percent))}px`,
+                                                        backgroundColor: row.value >= 0 ? '#DCEEAA' : '#F8BBD9'
+                                                    }}
+                                                ></div>
+                                                <span className={row.value >= 0 ? 'text-green-700' : 'text-red-600'}>
+                                                    {row.percent.toFixed(2)}%
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <AnalysisBoard insights={insights} />
             </PageContent>
         </PageLayout >
