@@ -28,28 +28,47 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         return cache.data;
     }
 
-    const targetSheet = "'Bdados Tratada Fchto 2025'";
-    let range = `${targetSheet}!A:ZZ`;
-    let rows = await getGoogleSheetsData(range);
+    // Optimized Sheet Discovery
+    // 1. Get all sheet names first to avoid "Unable to parse range" errors
+    const sheets = await getSheetNames();
+    console.log('fetchTransactions: Available sheets in spreadsheet:', sheets);
 
-    if (!rows || rows.length < 2) {
-        console.warn(`fetchTransactions: Failed to fetch from "${targetSheet}". Trying fallback search...`);
-        const sheets = await getSheetNames();
-        console.log(`fetchTransactions: Found available sheets in spreadsheet:`, sheets);
+    // 2. Strategy: Find the best matching sheet
+    let selectedSheet = '';
+    const targetName = "Bdados Tratada Fchto 2025";
 
-        // Find a sheet that starts with "Bdados" (the most likely name)
-        const possibleSheet = sheets.find(s => s?.toLowerCase().includes('bdados'));
+    // A. Clean match (ignore case and extra spaces)
+    const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '');
+    const normalizedTarget = normalize(targetName);
 
-        if (possibleSheet) {
-            console.log(`fetchTransactions: Automatically selected best match sheet: "${possibleSheet}"`);
-            range = `'${possibleSheet}'!A:Z`;
-            rows = await getGoogleSheetsData(range);
-        } else if (sheets.length > 0) {
-            console.log(`fetchTransactions: No Bdados sheet found. Falling back to FIRST sheet: "${sheets[0]}"`);
-            range = `'${sheets[0]}'!A:Z`;
-            rows = await getGoogleSheetsData(range);
-        }
+    selectedSheet = sheets.find(s => s && normalize(s) === normalizedTarget) || '';
+
+    // B. Partial match for "bdados" + "2025"
+    if (!selectedSheet) {
+        selectedSheet = sheets.find(s => s && s.toLowerCase().includes('bdados') && s.includes('2025')) || '';
     }
+
+    // C. Any "bdados" sheet
+    if (!selectedSheet) {
+        selectedSheet = sheets.find(s => s && s.toLowerCase().includes('bdados')) || '';
+    }
+
+    // D. First sheet fallback
+    if (!selectedSheet && sheets.length > 0) {
+        selectedSheet = sheets[0] || '';
+        console.warn('fetchTransactions: No specific sheet matched. Defaulting to first sheet:', selectedSheet);
+    }
+
+    if (!selectedSheet) {
+        console.error('fetchTransactions: CRITICAL - No executable sheet found.');
+        return [];
+    }
+
+    console.log(`fetchTransactions: Selected sheet for data: "${selectedSheet}"`);
+    const range = `'${selectedSheet}'!A:ZZ`;
+
+    // 3. Fetch data from the specifically identified sheet
+    let rows = await getGoogleSheetsData(range);
 
     if (!rows || rows.length < 2) {
         console.error('fetchTransactions: FAILED TO FIND ANY DATA IN ANY SHEET.');
@@ -57,12 +76,35 @@ export async function fetchTransactions(): Promise<Transaction[]> {
     }
     console.log(`fetchTransactions: Successfully fetched ${rows.length} rows.`);
 
-    const headers = rows[0];
-    const dataRows = rows.slice(1);
+    // Dynamic Header Detection: Search first 5 rows for the header line
+    // We look for a row that contains "Data" and ("BU" or "Valor" or "Tipo")
+    let headerRowIndex = 0;
+    const candidates = rows.slice(0, 5);
+    headerRowIndex = candidates.findIndex(row =>
+        row.some((cell: string) => typeof cell === 'string' && cell.toLowerCase().includes('data')) &&
+        row.some((cell: string) => typeof cell === 'string' && (cell.toLowerCase().includes('bu') || cell.toLowerCase().includes('business')))
+    );
+
+    if (headerRowIndex === -1) {
+        console.warn('fetchTransactions: Could not detect header row automatically. Defaulting to row 0.');
+        headerRowIndex = 0;
+    } else {
+        console.log(`fetchTransactions: Detected header row at index ${headerRowIndex}`);
+    }
+
+    const headers = rows[headerRowIndex];
+    const dataRows = rows.slice(headerRowIndex + 1);
     console.log(`fetchTransactions: Processing ${dataRows.length} data rows`);
 
-    // Flexible index finder helper
+    // Flexible index finder helper with Exact Match Priority
     const findIdx = (possibleNames: string[]) => {
+        // 1. Try EXACT match (case-insensitive)
+        const exactIdx = headers.findIndex((h: string) =>
+            possibleNames.some(name => h.trim().toLowerCase() === name.toLowerCase())
+        );
+        if (exactIdx !== -1) return exactIdx;
+
+        // 2. Try Partial match
         return headers.findIndex((h: string) =>
             possibleNames.some(name => h.toLowerCase().includes(name.toLowerCase()))
         );
@@ -72,7 +114,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         date: findIdx(['Data']),
         type: findIdx(['Tipo']),
         amount: findIdx(['Valor', 'Quantia', 'Total', 'R$']),
-        bu: findIdx(['BU', 'Unidade', 'Business']),
+        bu: findIdx(['BU', 'Unidade', 'Business', 'Unidade de Negócio', 'Unit']),
         macro: findIdx(['Macro', 'Categoria']),
         group: findIdx(['Grupo']),
         project: findIdx(['Projeto']),

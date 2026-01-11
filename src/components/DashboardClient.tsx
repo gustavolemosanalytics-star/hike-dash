@@ -9,8 +9,8 @@ import { KPICard } from "@/components/ui/KPICard";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { DateRange } from "react-day-picker";
 import {
-    BarChart, Bar, XAxis, Tooltip, ResponsiveContainer,
-    CartesianGrid, Legend, LineChart, Line, LabelList
+    BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, YAxis,
+    CartesianGrid, Legend, LineChart, Line, LabelList, ComposedChart
 } from "recharts";
 import { motion } from "framer-motion";
 import { format, parseISO, getQuarter, getYear, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
@@ -25,6 +25,8 @@ const META = 1000000;
 
 export function DashboardClient({ transactions }: DashboardClientProps) {
     const [selectedBU, setSelectedBU] = useState<string>("All");
+    const [chartBU, setChartBU] = useState<string>("All"); // Local chart filter
+    const [selectedType, setSelectedType] = useState<string>("All"); // Added Type state
     const [selectedProject, setSelectedProject] = useState<string>("All");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
     const [page, setPage] = useState(0);
@@ -36,6 +38,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
         if (!transactions) return [];
         return transactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
+            if (selectedType !== "All" && t.type !== selectedType) return false; // Added Type filter
             if (selectedProject !== "All" && t.project !== selectedProject) return false;
 
             if (dateRange?.from && t.date) {
@@ -49,29 +52,27 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
             }
             return true;
         });
-    }, [transactions, selectedBU, selectedProject, dateRange]);
+    }, [transactions, selectedBU, selectedProject, selectedType, dateRange]);
 
     const aggregated = useMemo(() => {
         let sumReceita = 0;
         let sumDespesa = 0;
-        let sumResultado = 0;
         let sumReceitaForMargin = 0;
 
         filteredData.forEach(t => {
-            const isReceita = t.type === '1. Contas a Receber';
-            const isDespesa = t.type === '2. Contas a Pagar';
-
-            if (isReceita) {
+            if (t.type === '1. Contas a Receber') {
                 sumReceita += t.amount;
+                // For margin calculation base
                 sumReceitaForMargin += t.amount;
             }
-            if (isDespesa) {
+            if (t.type === '2. Contas a Pagar') {
                 sumDespesa += Math.abs(t.amount);
             }
-            if (isReceita) sumResultado += t.amount;
-            if (isDespesa) sumResultado -= Math.abs(t.amount);
         });
+
+        const sumResultado = sumReceita - sumDespesa;
         const margem = sumReceitaForMargin ? (sumResultado / sumReceitaForMargin) * 100 : 0;
+
         return { receita: sumReceita, despesa: sumDespesa, resultado: sumResultado, margem };
     }, [filteredData]);
 
@@ -152,6 +153,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
     const allBUs = useMemo(() => Array.from(new Set(filteredData.map(t => t.bu || "Outros"))), [filteredData]);
     const buOptions = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
     const projectOptions = useMemo(() => Array.from(new Set(transactions.map(t => t.project || "N/D"))).sort(), [transactions]);
+    const typeOptions = ["1. Contas a Receber", "2. Contas a Pagar"]; // Static options as per data structure
 
     const insights = useMemo(() => generateInsights(aggregated, tableData, { type: 'dashboard' }), [aggregated, tableData]);
 
@@ -174,12 +176,19 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                     <p>Check console logs for Google Sheets errors.</p>
                 </div>
             )}
+            {transactions && transactions.length > 0 && buOptions.length <= 1 && buOptions[0] === 'N/D' && (
+                <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4" role="alert">
+                    <p className="font-bold">Aviso: Coluna BU não detectada</p>
+                    <p>Dados carregados, mas a coluna de Business Unit (BU) não foi encontrada ou está vazia. Verifique se o nome da coluna é exatamente "BU" na planilha.</p>
+                </div>
+            )}
 
             <PageHeader
                 title="Receitas, Despesas e Custos"
                 subtitle="Visão geral da performance financeira"
             >
                 <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={buOptions} />
+                <FilterDropdown label="Tipo" value={selectedType} onChange={setSelectedType} options={typeOptions} />
                 <FilterDropdown label="Projeto" value={selectedProject} onChange={setSelectedProject} options={projectOptions} />
                 <div className="h-8 w-[1px] bg-black/5 mx-1 hidden md:block"></div>
                 <DateRangePicker date={dateRange} setDate={setDateRange} />
@@ -225,37 +234,53 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                         </div>
                     </div>
 
-                    <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100/50 flex flex-col shadow-sm">
+                    <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-slate-100/50 flex flex-col shadow-sm min-h-[400px]">
                         <h3 className="text-lg font-semibold mb-4 text-slate-800">Resultado por BU</h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="text-xs uppercase text-slate-500 border-b border-slate-100 bg-slate-50/50">
-                                    <tr>
-                                        <th className="px-4 py-3 font-medium">BU</th>
-                                        <th className="px-4 py-3 font-medium text-right">Receita</th>
-                                        <th className="px-4 py-3 font-medium text-right">Despesa_Custo</th>
-                                        <th className="px-4 py-3 font-medium text-right">Resultado</th>
-                                        <th className="px-4 py-3 font-medium text-right">Margem</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {tableData.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((row: any) => (
-                                        <tr key={row.bu} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-4 py-3 font-medium text-slate-700">{row.bu}</td>
-                                            <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.receita)}</td>
-                                            <td className="px-4 py-3 text-right text-slate-600">{formatCurrency(row.despesa)}</td>
-                                            <td className="px-4 py-3 text-right font-semibold text-green-600">{formatCurrency(row.resultado)}</td>
-                                            <td className={`px-4 py-3 text-right ${row.margem >= 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                                {isNaN(row.margem) ? '0.00' : row.margem.toFixed(2)}%
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+
+                        {/* Interactive BU Buttons */}
+                        <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar mask-gradient-right">
+                            <button
+                                onClick={() => setChartBU("All")}
+                                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${chartBU === "All"
+                                    ? "bg-slate-800 text-white shadow-md"
+                                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                                    }`}
+                            >
+                                Todos
+                            </button>
+                            {buOptions.map(bu => (
+                                <button
+                                    key={bu}
+                                    onClick={() => setChartBU(bu)}
+                                    className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${chartBU === bu
+                                        ? "bg-slate-800 text-white shadow-md"
+                                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+                                        }`}
+                                >
+                                    {bu}
+                                </button>
+                            ))}
                         </div>
-                        <div className="mt-auto pt-4 flex justify-end gap-2">
-                            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronLeft className="w-5 h-5" /></button>
-                            <button onClick={() => setPage(p => (p + 1) * rowsPerPage < tableData.length ? p + 1 : p)} disabled={(page + 1) * rowsPerPage >= tableData.length} className="p-1 rounded hover:bg-slate-100 disabled:opacity-30"><ChevronRight className="w-5 h-5" /></button>
+
+                        <div className="flex-1 w-full min-h-0">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <ComposedChart
+                                    data={chartBU === 'All' ? tableData : tableData.filter(d => d.bu === chartBU)}
+                                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                                    <XAxis dataKey="bu" axisLine={false} tickLine={false} tick={{ fill: '#1A1A1A', fontSize: 11, fontWeight: 500 }} />
+                                    <YAxis yAxisId="left" orientation="left" tickFormatter={(val) => new Intl.NumberFormat('en', { notation: "compact" }).format(val)} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <Tooltip formatter={(val: any, name: any) => name === 'Margem' ? `${Number(val).toFixed(2)}%` : formatCurrency(Number(val))} />
+                                    <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+
+                                    <Bar yAxisId="left" dataKey="receita" name="Receita" fill="#DCEEAA" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Bar yAxisId="left" dataKey="despesa" name="Despesa" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Bar yAxisId="left" dataKey="resultado" name="Resultado" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Line yAxisId="right" type="monotone" dataKey="margem" name="Margem" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 3 }} />
+                                </ComposedChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
                 </div>
