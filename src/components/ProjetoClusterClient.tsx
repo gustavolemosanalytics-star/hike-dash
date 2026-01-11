@@ -378,14 +378,14 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                         cx="50%"
                                         cy="50%"
                                         outerRadius={100}
-                                        label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                                        label={({ percent }: { percent?: number }) => percent ? `${(percent * 100).toFixed(1)}%` : ''}
                                         labelLine={false}
                                     >
                                         {pieReceberData.map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
                                         ))}
                                     </Pie>
-                                    <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                                    <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="flex-1 text-xs space-y-1 overflow-auto max-h-[300px]">
@@ -408,7 +408,7 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 9 }} interval={0} />
-                                    <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                                    <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
                                     <Bar dataKey="value" fill="#DCEEAA" radius={[0, 4, 4, 0]}>
                                         <LabelList dataKey="value" position="right" formatter={(val: any) => formatCurrency(val)} style={{ fontSize: 9, fill: '#333' }} />
                                     </Bar>
