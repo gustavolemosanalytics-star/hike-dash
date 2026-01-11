@@ -24,25 +24,46 @@ export function PessoasClient({ transactions }: PessoasProps) {
     const [selectedMacro, setSelectedMacro] = useState<string>("All");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
+    // Optimization: Pre-process transactions to parse dates once
+    const processedTransactions = useMemo(() => {
+        return transactions.map(t => {
+            let parsedDate: Date | null = null;
+            if (t.date) {
+                try {
+                    parsedDate = parseISO(t.date);
+                } catch (e) {
+                    // invalid date
+                }
+            }
+            return { ...t, parsedDate };
+        });
+    }, [transactions]);
+
     // Filter Data
     const filtered = useMemo(() => {
-        return transactions.filter(t => {
+        // Pre-calculate date range boundaries if they exist
+        const fromDate = dateRange?.from ? startOfDay(dateRange.from) : null;
+        const toDate = dateRange?.to ? endOfDay(dateRange.to) : (fromDate ? endOfDay(fromDate) : null);
+
+        return processedTransactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
-            // The user asked for "Pessoas" filtering, often implies filtering by 'Pessoal' macro category or similar logic
-            // But here we rely on the implementation logic provided earlier.
             if (selectedMacro !== "All" && t.macroCategory !== selectedMacro) return false;
 
-            if (dateRange?.from && t.date) {
-                try {
-                    const tDate = parseISO(t.date);
-                    const from = startOfDay(dateRange.from);
-                    const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-                    if (!isWithinInterval(tDate, { start: from, end: to })) return false;
-                } catch (e) { return false; }
+            if (fromDate && t.parsedDate) {
+                // Use the pre-parsed date object directly
+                if (toDate) {
+                    if (t.parsedDate < fromDate || t.parsedDate > toDate) return false;
+                } else {
+                    if (t.parsedDate < fromDate) return false;
+                }
+            } else if (fromDate && !t.parsedDate) {
+                // If we have a date filter but this transaction has no valid date, exclude it
+                return false;
             }
+
             return true;
         });
-    }, [transactions, selectedBU, selectedMacro, dateRange]);
+    }, [processedTransactions, selectedBU, selectedMacro, dateRange]);
 
     // Data Aggregation logic (same as before)
     const buCategoryData = useMemo(() => {

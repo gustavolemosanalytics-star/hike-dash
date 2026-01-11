@@ -29,23 +29,42 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
 
     const [page, setPage] = useState(0);
 
+    // Optimization: Pre-process transactions to parse dates once
+    const processedTransactions = useMemo(() => {
+        return transactions.map(t => {
+            let parsedDate: Date | null = null;
+            if (t.date) {
+                try {
+                    parsedDate = parseISO(t.date);
+                } catch (e) {
+                    // invalid date
+                }
+            }
+            return { ...t, parsedDate };
+        });
+    }, [transactions]);
+
     const filtered = useMemo(() => {
-        return transactions.filter(t => {
+        const fromDate = dateRange?.from ? startOfDay(dateRange.from) : null;
+        const toDate = dateRange?.to ? endOfDay(dateRange.to) : (fromDate ? endOfDay(fromDate) : null);
+
+        return processedTransactions.filter(t => {
             if (selectedBU !== "All" && t.bu !== selectedBU) return false;
             // Additional filtering if needed, e.g. Project
             if (selectedProject !== "All" && t.project !== selectedProject) return false;
 
-            if (dateRange?.from && t.date) {
-                try {
-                    const tDate = parseISO(t.date);
-                    const from = startOfDay(dateRange.from);
-                    const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-                    if (!isWithinInterval(tDate, { start: from, end: to })) return false;
-                } catch (e) { return false; }
+            if (fromDate && t.parsedDate) {
+                if (toDate) {
+                    if (t.parsedDate < fromDate || t.parsedDate > toDate) return false;
+                } else {
+                    if (t.parsedDate < fromDate) return false;
+                }
+            } else if (fromDate && !t.parsedDate) {
+                return false;
             }
             return true;
         });
-    }, [transactions, selectedBU, selectedProject, dateRange]);
+    }, [processedTransactions, selectedBU, selectedProject, dateRange]);
 
     const aggregated = useMemo(() => {
         let receTotal = 0;
@@ -82,9 +101,11 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
         const map = new Map();
         filtered.forEach(t => {
             if (t.type !== '1. Contas a Receber') return;
-            if (!t.date) return;
+            // Use pre-parsed date if available
+            if (!t.parsedDate) return;
+
             try {
-                const d = parseISO(t.date);
+                const d = t.parsedDate;
                 const q = getQuarter(d);
                 const y = getYear(d);
                 const key = `T${q}, ${y}`;
@@ -106,9 +127,9 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
 
         filtered.forEach(t => {
             if (t.type !== '1. Contas a Receber') return;
-            if (!t.date) return;
+            if (!t.parsedDate) return;
             try {
-                const d = parseISO(t.date);
+                const d = t.parsedDate;
                 const q = getQuarter(d);
                 const y = getYear(d);
                 const quarterKey = `T${q}, ${y}`;
