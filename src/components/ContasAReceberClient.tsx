@@ -99,6 +99,53 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
         return Array.from(map.values()).sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey));
     }, [filtered]);
 
+    // Perfil das Receitas por Quarter (grouped by MacroCategory)
+    const byMacroQuarter = useMemo(() => {
+        const quarterMap = new Map();
+        const macroSet = new Set<string>();
+
+        filtered.forEach(t => {
+            if (t.type !== '1. Contas a Receber') return;
+            if (!t.date) return;
+            try {
+                const d = parseISO(t.date);
+                const q = getQuarter(d);
+                const y = getYear(d);
+                const quarterKey = `T${q}, ${y}`;
+                const sortKey = `${y}-${q}`;
+                const macro = t.macroCategory || "Outros";
+
+                macroSet.add(macro);
+
+                if (!quarterMap.has(quarterKey)) {
+                    quarterMap.set(quarterKey, { name: quarterKey, sortKey });
+                }
+                const entry = quarterMap.get(quarterKey);
+                if (!entry[macro]) entry[macro] = 0;
+                entry[macro] += Math.abs(t.amount);
+            } catch (e) { }
+        });
+
+        const sorted = Array.from(quarterMap.values()).sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey));
+        return { data: sorted, macros: Array.from(macroSet).sort() };
+    }, [filtered]);
+
+    // Color palette for macro categories
+    const macroColors: Record<string, string> = {
+        "Receitas de Tailor Made": "#E8E8E8",
+        "Receitas de Ativações de Marca e Digital": "#4A4A4A",
+        "Receitas de Licenciamento": "#9B59B6",
+        "Receitas de Eventos": "#3498DB",
+        "Receitas de Patrocínios": "#E91E63",
+        "Outros": "#95A5A6",
+    };
+
+    const getMacroColor = (macro: string, index: number) => {
+        if (macroColors[macro]) return macroColors[macro];
+        const fallbackColors = ["#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6", "#EC4899", "#6366F1", "#14B8A6"];
+        return fallbackColors[index % fallbackColors.length];
+    };
+
     const trendData = useMemo(() => {
         const map = new Map();
         const buSet = new Set<string>();
@@ -242,6 +289,40 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
+                    </div>
+                </div>
+
+                {/* Perfil das Receitas por Quarter */}
+                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                        <div className="w-1 h-5 bg-[#8B5CF6] rounded-full"></div>
+                        Perfil das Receitas por Quarter
+                    </h3>
+                    <div className="h-[450px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={byMacroQuarter.data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
+                                <Tooltip formatter={(val: any) => formatCurrency(Number(val))} />
+                                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                {byMacroQuarter.macros.map((macro, idx) => (
+                                    <Bar
+                                        key={macro}
+                                        dataKey={macro}
+                                        name={macro}
+                                        fill={getMacroColor(macro, idx)}
+                                        radius={[2, 2, 0, 0]}
+                                    >
+                                        <LabelList
+                                            dataKey={macro}
+                                            position="top"
+                                            formatter={(val: any) => val > 0 ? formatCompact(Number(val)) : ''}
+                                            style={{ fontSize: 8, fill: '#333', fontWeight: 500 }}
+                                        />
+                                    </Bar>
+                                ))}
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
