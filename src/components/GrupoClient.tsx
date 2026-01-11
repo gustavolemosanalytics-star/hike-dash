@@ -117,7 +117,7 @@ export function GrupoClient({ transactions }: GrupoProps) {
                 {/* Row 1: Charts */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
-                        <h3 className="text-lg font-semibold mb-6 text-gray-800">Volume por Grupo</h3>
+                        <h3 className="text-lg font-semibold mb-6 text-gray-800">Valor da Conta por Grupo</h3>
                         <div className="h-[350px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={groupData} layout="vertical" margin={{ left: 40 }}>
@@ -140,7 +140,7 @@ export function GrupoClient({ transactions }: GrupoProps) {
                     </div>
 
                     <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
-                        <h3 className="text-lg font-semibold mb-6 text-gray-800">Evolução Mensal</h3>
+                        <h3 className="text-lg font-semibold mb-6 text-gray-800">Valor da Conta por Data (Ano e mês) e Grupo</h3>
                         <div className="h-[350px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={timelineData}>
@@ -149,10 +149,55 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                     <YAxis tickLine={false} axisLine={false} tickFormatter={(val) => new Intl.NumberFormat('en', { notation: 'compact' }).format(val)} tick={{ fontSize: 12, fill: '#6B7280' }} />
                                     <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
                                     <Legend />
-                                    <Bar dataKey="value" fill="#DCEEAA" radius={[4, 4, 0, 0]} />
+                                    {['Variável', 'Fixo', 'N/D'].map((grp, idx) => (
+                                        <Bar key={grp} dataKey={grp} fill={idx === 0 ? '#2E7D32' : idx === 1 ? '#E6EE9C' : '#9E9E9E'} radius={[4, 4, 0, 0]}>
+                                            <LabelList dataKey={grp} position="top" formatter={(val: any) => val ? formatCurrency(Number(val)) : ''} style={{ fontSize: 9, fill: '#333' }} />
+                                        </Bar>
+                                    ))}
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
+                    </div>
+                </div>
+
+                {/* Tabela por Grupo */}
+                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col mt-8">
+                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
+                        <div className="w-1 h-5 bg-[#DCEEAA] rounded-full"></div>
+                        Tabela por Grupo
+                    </h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-black/5 text-xs uppercase font-semibold text-secondary-foreground">
+                                <tr>
+                                    <th className="px-4 py-3 text-left">Grupo</th>
+                                    <th className="px-4 py-3 text-right">Valor da Conta</th>
+                                    <th className="px-4 py-3 text-right">% do total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5">
+                                {groupData.map((row: any, i: number) => (
+                                    <tr key={i} className="hover:bg-white/40 transition-colors">
+                                        <td className="px-4 py-3 font-medium">{row.name}</td>
+                                        <td className="px-4 py-3 text-right">{formatCurrency(row.value)}</td>
+                                        <td className="px-4 py-3 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <div
+                                                    className="h-3 rounded-sm"
+                                                    style={{
+                                                        width: `${Math.min(100, Math.abs(row.percent))}px`,
+                                                        backgroundColor: row.value >= 0 ? '#DCEEAA' : '#F8BBD9'
+                                                    }}
+                                                ></div>
+                                                <span className={row.value >= 0 ? 'text-green-700' : 'text-red-600'}>
+                                                    {row.percent.toFixed(2)}%
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 

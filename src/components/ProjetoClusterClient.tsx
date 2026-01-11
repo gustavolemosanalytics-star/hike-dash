@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { Transaction } from "@/lib/data";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    CartesianGrid, Legend, Cell, LabelList
+    CartesianGrid, Legend, Cell, LabelList, PieChart, Pie
 } from "recharts";
 import { motion } from "framer-motion";
 import { AnalysisBoard } from "@/components/AnalysisBoard";
@@ -120,6 +120,68 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
         }]
     }, [kpis]);
 
+    // Overview Projetos - full list with pagination
+    const overviewProjetos = useMemo(() => {
+        const map = new Map();
+        filtered.forEach(t => {
+            const proj = t.project || "N/D";
+            if (!map.has(proj)) map.set(proj, { name: proj, value: 0 });
+            map.get(proj).value += t.amount;
+        });
+        return Array.from(map.values()).sort((a: any, b: any) => b.value - a.value);
+    }, [filtered]);
+
+    // Tabela por Cluster with quarter breakdown
+    const clusterQuarterData = useMemo(() => {
+        const map = new Map();
+        const total = filtered.reduce((acc, t) => acc + Math.abs(t.amount), 0);
+
+        filtered.forEach(t => {
+            const cluster = t.cluster || "N/D";
+            const quarter = t.date ? `T${Math.ceil((parseInt(t.date.substring(5, 7)) / 3))}, ${t.date.substring(0, 4)}` : "N/D";
+            const key = `${cluster}-${quarter}`;
+
+            if (!map.has(key)) map.set(key, { cluster, quarter, value: 0, percent: 0 });
+            map.get(key).value += t.amount;
+        });
+
+        return Array.from(map.values())
+            .map((item: any) => ({ ...item, percent: total ? (item.value / total) * 100 : 0 }))
+            .sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+    }, [filtered]);
+
+    // Pie chart data - Contas a Receber by MacroCategory
+    const pieReceberData = useMemo(() => {
+        const map = new Map();
+        let total = 0;
+
+        filtered.forEach(t => {
+            if (t.type !== '1. Contas a Receber') return;
+            const cat = t.macroCategory || "Outros";
+            if (!map.has(cat)) map.set(cat, { name: cat, value: 0 });
+            map.get(cat).value += Math.abs(t.amount);
+            total += Math.abs(t.amount);
+        });
+
+        return Array.from(map.values())
+            .map((item: any) => ({ ...item, percent: total ? (item.value / total) * 100 : 0 }))
+            .sort((a: any, b: any) => b.value - a.value);
+    }, [filtered]);
+
+    // Pie chart data - Contas a Pagar by MacroCategory
+    const piePagarData = useMemo(() => {
+        const map = new Map();
+
+        filtered.forEach(t => {
+            if (t.type !== '2. Contas a Pagar') return;
+            const cat = t.macroCategory || "Outros";
+            if (!map.has(cat)) map.set(cat, { name: cat, value: 0 });
+            map.get(cat).value += Math.abs(t.amount);
+        });
+
+        return Array.from(map.values()).sort((a: any, b: any) => b.value - a.value).slice(0, 10);
+    }, [filtered]);
+
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 
@@ -206,6 +268,152 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Tabela por Cluster */}
+                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col mt-8 max-h-[400px] overflow-hidden">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <div className="w-1 h-5 bg-[#DCEEAA] rounded-full"></div>
+                        Tabela por Cluster
+                    </h3>
+                    <div className="flex-1 overflow-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-black/5 text-xs uppercase font-semibold text-secondary-foreground sticky top-0">
+                                <tr>
+                                    <th className="px-4 py-2 text-left">Cluster</th>
+                                    <th className="px-4 py-2 text-left">Data (Ano e trimestre)</th>
+                                    <th className="px-4 py-2 text-right">Valor da Conta</th>
+                                    <th className="px-4 py-2 text-right">% do total</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5">
+                                {clusterQuarterData.slice(0, 12).map((row: any, i: number) => (
+                                    <tr key={i} className="hover:bg-white/40">
+                                        <td className="px-4 py-2 text-xs">{row.cluster}</td>
+                                        <td className="px-4 py-2 text-xs">{row.quarter}</td>
+                                        <td className="px-4 py-2 text-right text-xs">
+                                            <span className={row.value >= 0 ? '' : ''}>
+                                                {formatCurrency(row.value)}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <div
+                                                    className="h-2 rounded-sm"
+                                                    style={{
+                                                        width: `${Math.min(80, Math.abs(row.percent * 2))}px`,
+                                                        backgroundColor: row.value >= 0 ? '#DCEEAA' : '#F8BBD9'
+                                                    }}
+                                                ></div>
+                                                <span className={`text-xs ${row.value >= 0 ? 'text-green-700' : 'text-red-600'}`}>
+                                                    {row.percent.toFixed(2)}%
+                                                </span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Overview Projetos */}
+                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col mt-8 max-h-[400px] overflow-hidden">
+                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <div className="w-1 h-5 bg-[#5F6368] rounded-full"></div>
+                        Overview Projetos
+                    </h3>
+                    <div className="flex-1 overflow-auto">
+                        <table className="w-full text-sm">
+                            <thead className="bg-black/5 text-xs uppercase font-semibold text-secondary-foreground sticky top-0">
+                                <tr>
+                                    <th className="px-4 py-2 text-left">Projeto</th>
+                                    <th className="px-4 py-2 text-right">Valor da Conta</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5">
+                                {overviewProjetos.slice(page * 15, (page + 1) * 15).map((row: any, i: number) => (
+                                    <tr key={i} className="hover:bg-white/40">
+                                        <td className="px-4 py-2 text-xs">{row.name}</td>
+                                        <td className="px-4 py-2 text-right">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <div
+                                                    className="h-2 rounded-sm"
+                                                    style={{
+                                                        width: `${Math.min(100, Math.abs(row.value / 10000))}px`,
+                                                        backgroundColor: row.value >= 0 ? '#DCEEAA' : '#CCC'
+                                                    }}
+                                                ></div>
+                                                <span className="text-xs">{formatCurrency(row.value)}</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-black/5">
+                        <span className="text-xs text-gray-500">{page * 15 + 1} - {Math.min((page + 1) * 15, overviewProjetos.length)} / {overviewProjetos.length}</span>
+                        <div className="flex gap-1">
+                            <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="px-2 py-1 text-xs rounded hover:bg-black/5 disabled:opacity-30">&lt;</button>
+                            <button onClick={() => setPage(page + 1)} disabled={(page + 1) * 15 >= overviewProjetos.length} className="px-2 py-1 text-xs rounded hover:bg-black/5 disabled:opacity-30">&gt;</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Row 2: Pie Charts */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+                    {/* Pie Chart - Contas a Receber */}
+                    <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                        <h3 className="text-lg font-semibold mb-6">Categoria por Contas a Receber</h3>
+                        <div className="h-[350px] w-full flex items-center">
+                            <ResponsiveContainer width="60%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieReceberData}
+                                        dataKey="value"
+                                        nameKey="name"
+                                        cx="50%"
+                                        cy="50%"
+                                        outerRadius={100}
+                                        label={({ percent }) => `${(percent * 100).toFixed(1)}%`}
+                                        labelLine={false}
+                                    >
+                                        {pieReceberData.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="flex-1 text-xs space-y-1 overflow-auto max-h-[300px]">
+                                {pieReceberData.slice(0, 10).map((item: any, idx: number) => (
+                                    <div key={idx} className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: colors[idx % colors.length] }}></div>
+                                        <span className="truncate" title={item.name}>{item.name.substring(0, 30)}...</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Bar Chart - Contas a Pagar */}
+                    <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                        <h3 className="text-lg font-semibold mb-6">Categoria por Contas a Pagar</h3>
+                        <div className="h-[350px] w-full">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart layout="vertical" data={piePagarData} margin={{ left: 120 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 9 }} interval={0} />
+                                    <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                                    <Bar dataKey="value" fill="#DCEEAA" radius={[0, 4, 4, 0]}>
+                                        <LabelList dataKey="value" position="right" formatter={(val: any) => formatCurrency(val)} style={{ fontSize: 9, fill: '#333' }} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
                         </div>
                     </div>
                 </div>
