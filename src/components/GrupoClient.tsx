@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import { Transaction } from "@/lib/data";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    CartesianGrid, Legend, Cell, LabelList
+    CartesianGrid, Legend, Cell, LabelList, ReferenceLine
 } from "recharts";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnalysisBoard } from "@/components/AnalysisBoard";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { PageLayout, PageContent, PageHeader } from "@/components/ui/PageLayout";
@@ -24,6 +25,7 @@ export function GrupoClient({ transactions }: GrupoProps) {
 
     // Pagination
     const [page, setPage] = useState(0);
+    const rowsPerPage = 10;
 
     const filtered = useMemo(() => {
         return transactions.filter(t => {
@@ -120,7 +122,7 @@ export function GrupoClient({ transactions }: GrupoProps) {
                         <h3 className="text-lg font-semibold mb-6 text-gray-800">Valor da Conta por Grupo</h3>
                         <div className="h-[350px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={groupData} layout="vertical" margin={{ left: 40 }}>
+                                <BarChart data={groupData} layout="vertical" margin={{ left: 40, right: 80 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 12 }} />
@@ -128,11 +130,31 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                         formatter={(val: number | undefined) => formatCurrency(val || 0)}
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                     />
+                                    <ReferenceLine x={0} stroke="#999" strokeWidth={1} />
                                     <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={32}>
                                         {groupData.map((entry: any, index: number) => (
-                                            <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+                                            <Cell key={`cell-${index}`} fill={entry.value >= 0 ? colors[index % colors.length] : '#F8BBD9'} />
                                         ))}
-                                        <LabelList dataKey="value" position="right" formatter={(val: any) => formatCurrency(Number(val) || 0)} style={{ fontSize: '11px', fill: '#666' }} />
+                                        <LabelList
+                                            dataKey="value"
+                                            content={({ x, y, width, height, value }: any) => {
+                                                const isNegative = value < 0;
+                                                const labelX = isNegative ? (x as number) - 8 : (x as number) + (width || 0) + 8;
+                                                const anchor = isNegative ? 'end' : 'start';
+                                                return (
+                                                    <text
+                                                        x={labelX}
+                                                        y={(y as number) + ((height || 0) / 2) + 4}
+                                                        textAnchor={anchor}
+                                                        fill={isNegative ? '#E11D48' : '#666'}
+                                                        fontSize={11}
+                                                        fontWeight={500}
+                                                    >
+                                                        {formatCurrency(value || 0)}
+                                                    </text>
+                                                );
+                                            }}
+                                        />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -143,16 +165,18 @@ export function GrupoClient({ transactions }: GrupoProps) {
                         <h3 className="text-lg font-semibold mb-6 text-gray-800">Valor da Conta por Data (Ano e mês) e Grupo</h3>
                         <div className="h-[350px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={timelineData}>
+                                <BarChart data={timelineData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                    <XAxis dataKey="formattedName" tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: '#6B7280' }} />
-                                    <YAxis tickLine={false} axisLine={false} tickFormatter={(val) => new Intl.NumberFormat('en', { notation: 'compact' }).format(val)} tick={{ fontSize: 12, fill: '#6B7280' }} />
-                                    <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
-                                    <Legend />
+                                    <XAxis dataKey="formattedName" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
+                                    <YAxis tickLine={false} axisLine={false} tickFormatter={(val) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(val)} tick={{ fontSize: 11, fill: '#6B7280' }} />
+                                    <Tooltip
+                                        formatter={(val: number | undefined) => formatCurrency(val || 0)}
+                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                    />
+                                    <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                    <ReferenceLine y={0} stroke="#999" strokeWidth={1} />
                                     {['Variável', 'Fixo', 'N/D'].map((grp, idx) => (
-                                        <Bar key={grp} dataKey={grp} fill={idx === 0 ? '#2E7D32' : idx === 1 ? '#E6EE9C' : '#9E9E9E'} radius={[4, 4, 0, 0]}>
-                                            <LabelList dataKey={grp} position="top" formatter={(val: any) => val ? formatCurrency(Number(val)) : ''} style={{ fontSize: 9, fill: '#333' }} />
-                                        </Bar>
+                                        <Bar key={grp} dataKey={grp} fill={idx === 0 ? '#2E7D32' : idx === 1 ? '#E6EE9C' : '#9E9E9E'} radius={[4, 4, 0, 0]} />
                                     ))}
                                 </BarChart>
                             </ResponsiveContainer>
@@ -176,7 +200,7 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black/5">
-                                {groupData.map((row: any, i: number) => (
+                                {groupData.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((row: any, i: number) => (
                                     <tr key={i} className="hover:bg-white/40 transition-colors">
                                         <td className="px-4 py-3 font-medium">{row.name}</td>
                                         <td className="px-4 py-3 text-right">{formatCurrency(row.value)}</td>
@@ -198,6 +222,13 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="p-2 flex justify-between items-center border-t border-black/5 bg-white/30">
+                        <span className="text-xs text-secondary-foreground">Pg {page + 1} de {Math.ceil(groupData.length / rowsPerPage)}</span>
+                        <div className="flex gap-1">
+                            <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+                            <button onClick={() => setPage(page + 1)} disabled={(page + 1) * rowsPerPage >= groupData.length} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+                        </div>
                     </div>
                 </div>
 

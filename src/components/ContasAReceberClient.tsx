@@ -28,6 +28,7 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
     const [page, setPage] = useState(0);
+    const rowsPerPage = 10;
 
     // Optimization: Pre-process transactions to parse dates once
     const processedTransactions = useMemo(() => {
@@ -148,7 +149,18 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
         });
 
         const sorted = Array.from(quarterMap.values()).sort((a: any, b: any) => a.sortKey.localeCompare(b.sortKey));
-        return { data: sorted, macros: Array.from(macroSet).sort() };
+        // Sort macros by value (descending) across the entire filtered set to determine stack order/legend order consistently or per bar?
+        // The user wants "ordenado por valor decrecente".
+        // Since it's a stacked bar chart over time (quarters), sorting quarters (X-axis) by value is weird.
+        // Assuming they mean the segments within the stack should be ordered by size.
+        // Recharts stacks are ordered by the definition order of <Bar /> components.
+        // So we need to sort `macros` array based on total value.
+        const macroSummaries = Array.from(macroSet).map(m => ({
+            name: m,
+            total: Array.from(quarterMap.values()).reduce((acc: number, q: any) => acc + (q[m] || 0), 0)
+        })).sort((a, b) => b.total - a.total); // Descending total value
+
+        return { data: sorted, macros: macroSummaries.map(m => m.name) };
     }, [filtered]);
 
     // Color palette for macro categories
@@ -324,7 +336,9 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                             <BarChart data={byMacroQuarter.data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <Tooltip formatter={(val: any) => formatCurrency(Number(val))} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
+                                {/* Tooltip disabled as requested */}
+                                <Legend wrapperStyle={{ fontSize: '10px' }} />
                                 <Legend wrapperStyle={{ fontSize: '10px' }} />
                                 {byMacroQuarter.macros.map((macro, idx) => (
                                     <Bar

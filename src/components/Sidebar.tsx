@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 
 const menuItems = [
-    { name: "Dashboard", href: "/", icon: LayoutDashboard },
+    { name: "Visão Geral", href: "/", icon: LayoutDashboard },
     { name: "A Receber", href: "/contas-a-receber", icon: ArrowDownCircle },
     { name: "A Pagar", href: "/contas-a-pagar", icon: ArrowUpCircle },
     { name: "Macro", href: "/macrocategoria", icon: Layers },

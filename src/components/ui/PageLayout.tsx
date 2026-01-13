@@ -31,6 +31,7 @@ export function PageHeader({
             className={`
                 flex-shrink-0 relative
                 ${className || ''}
+                z-30
             `}
         >
             {/* Main Header Section */}

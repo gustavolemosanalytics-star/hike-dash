@@ -6,6 +6,7 @@ import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     CartesianGrid, Legend, Cell, LabelList, ReferenceLine
 } from "recharts";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnalysisBoard } from "@/components/AnalysisBoard";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { DateRange } from "react-day-picker";
@@ -27,7 +28,7 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
 
     // Pagination for table
     const [page, setPage] = useState(0);
-    const rowsPerPage = 8;
+    const rowsPerPage = 10;
 
     const filtered = useMemo(() => {
         return transactions.filter(t => {
@@ -51,7 +52,8 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
     const aggregated = useMemo(() => {
         const map = new Map();
         filtered.forEach(t => {
-            const key = t.macroCategory || "Outros";
+            // Use CATEGORY (detailed) for the horizontal bar chart "Valor por Categoria"
+            const key = t.category || t.macroCategory || "Outros";
             const val = map.get(key) || 0;
             map.set(key, val + t.amount);
         });
@@ -61,7 +63,8 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
     const categoryData = useMemo(() => {
         let arr = [...aggregated]; // Use aggregated directly
         arr.sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
-        return arr;
+        // Limit to Top 20 for readability
+        return arr.slice(0, 20);
     }, [aggregated]);
 
     const buMacroData = useMemo(() => {
@@ -107,7 +110,10 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
 
     const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
     const allTypes = ["1. Contas a Receber", "2. Contas a Pagar"];
-    const allMacros = useMemo(() => Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).sort(), [transactions]);
+    const allMacros = useMemo(() => {
+        const macros = transactions.map(t => t.macroCategory).filter(m => m && m.trim() !== '');
+        return Array.from(new Set(macros)).sort();
+    }, [transactions]);
 
     return (
         <PageLayout>
@@ -126,16 +132,40 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Horizontal Bar: Valor por Categoria */}
                     <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
-                        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">Valor por Categoria</h3>
+                        <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">Top 20 Categorias (Valor)</h3>
                         <div className="h-[500px] w-full relative">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart layout="vertical" data={categoryData} margin={{ top: 20, right: 30, left: 100, bottom: 5 }}>
+                                <BarChart layout="vertical" data={categoryData} margin={{ top: 20, right: 100, left: 100, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 10 }} interval={0} />
                                     <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
-                                    <Bar dataKey="value" fill="#DCEEAA" radius={[0, 4, 4, 0]}>
-                                        <LabelList dataKey="value" position="right" formatter={(val: any) => formatCurrency(Number(val) || 0)} style={{ fontSize: 10, fill: '#333', fontWeight: 600 }} />
+                                    <ReferenceLine x={0} stroke="#999" strokeWidth={1} />
+                                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                        {categoryData.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={entry.value >= 0 ? '#DCEEAA' : '#F8BBD9'} />
+                                        ))}
+                                        <LabelList
+                                            dataKey="value"
+                                            position="right"
+                                            content={({ x, y, width, height, value }: any) => {
+                                                const isNegative = value < 0;
+                                                const labelX = isNegative ? (x as number) - 10 : (x as number) + (width || 0) + 8;
+                                                const anchor = isNegative ? 'end' : 'start';
+                                                return (
+                                                    <text
+                                                        x={labelX}
+                                                        y={(y as number) + ((height || 0) / 2) + 4}
+                                                        textAnchor={anchor}
+                                                        fill={isNegative ? '#E11D48' : '#333'}
+                                                        fontSize={10}
+                                                        fontWeight={600}
+                                                    >
+                                                        {formatCurrency(value || 0)}
+                                                    </text>
+                                                );
+                                            }}
+                                        />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -161,37 +191,41 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                     </div>
                 </div>
 
-                {/* Tabela por MacroCategoria */}
-                <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
-                    <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                        <div className="w-1 h-5 bg-[#DCEEAA] rounded-full"></div>
-                        Tabela por MacroCategoria
-                    </h3>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-black/5 text-xs uppercase font-semibold text-secondary-foreground">
-                                <tr>
-                                    <th className="px-4 py-3 text-left">MacroCategoria</th>
-                                    <th className="px-4 py-3 text-right">Valor</th>
-                                    <th className="px-4 py-3 text-right">% do total</th>
+                {/* Tabela por Categoria */}
+                <div className="glass-card rounded-2xl border border-white/40 flex flex-col overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-white">
+                        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                            <div className="w-1 h-5 bg-[#DCEEAA] rounded-full"></div>
+                            Tabela por Categoria
+                        </h3>
+                    </div>
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full">
+                            <thead className="sticky top-0 z-10">
+                                <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-left">Categoria</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Valor</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">% do Total</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-black/5">
-                                {tableData.map((row: any, i: number) => (
-                                    <tr key={i} className="hover:bg-white/40 transition-colors">
-                                        <td className="px-4 py-3 font-medium">{row.name}</td>
-                                        <td className="px-4 py-3 text-right">{formatCurrency(row.value)}</td>
-                                        <td className="px-4 py-3 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <div
-                                                    className="h-3 rounded-sm"
-                                                    style={{
-                                                        width: `${Math.min(100, Math.abs(row.percent))}px`,
-                                                        backgroundColor: row.value >= 0 ? '#DCEEAA' : '#F8BBD9'
-                                                    }}
-                                                ></div>
-                                                <span className={row.value >= 0 ? 'text-green-700' : 'text-red-600'}>
-                                                    {row.percent.toFixed(2)}%
+                            <tbody className="divide-y divide-slate-100">
+                                {tableData.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((row: any, i: number) => (
+                                    <tr key={i} className="group transition-all duration-200 hover:bg-gradient-to-r hover:from-[#DCEEAA]/10 hover:to-transparent">
+                                        <td className="px-6 py-4 text-sm font-medium text-slate-700">{row.name}</td>
+                                        <td className="px-6 py-4 text-sm text-right font-semibold text-slate-800">{formatCurrency(row.value)}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex items-center justify-end gap-3">
+                                                <div className="w-20 h-2 bg-slate-100 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full rounded-full transition-all"
+                                                        style={{
+                                                            width: `${Math.min(100, Math.abs(row.percent))}%`,
+                                                            backgroundColor: row.value >= 0 ? '#DCEEAA' : '#F8BBD9'
+                                                        }}
+                                                    ></div>
+                                                </div>
+                                                <span className={`text-sm font-semibold ${row.value >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                                    {row.percent.toFixed(1)}%
                                                 </span>
                                             </div>
                                         </td>
@@ -199,6 +233,18 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="px-6 py-3 border-t border-slate-200/50 bg-gradient-to-r from-white to-slate-50 flex items-center justify-between">
+                        <span className="text-sm text-slate-500">
+                            Mostrando <span className="font-semibold text-slate-700">{page * rowsPerPage + 1}</span> a{" "}
+                            <span className="font-semibold text-slate-700">{Math.min((page + 1) * rowsPerPage, tableData.length)}</span> de{" "}
+                            <span className="font-semibold text-slate-700">{tableData.length}</span>
+                        </span>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 transition-all"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
+                            <span className="text-sm font-medium text-slate-600">Pg {page + 1}</span>
+                            <button onClick={() => setPage(page + 1)} disabled={(page + 1) * rowsPerPage >= tableData.length} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 transition-all"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
+                        </div>
                     </div>
                 </div>
 

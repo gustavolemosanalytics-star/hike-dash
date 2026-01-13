@@ -66,7 +66,7 @@ export function DateRangePicker({ date, setDate, className }: DateRangePickerPro
             </div>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 z-50 bg-[#0F172A] border border-white/10 rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 text-white">
+                <div className="absolute top-full mt-2 right-0 z-[100] bg-[#0F172A] border border-white/10 rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 text-white">
                     <style>{`
                         .rdp { --rdp-cell-size: 32px; --rdp-accent-color: #DCEEAA; --rdp-background-color: #DCEEAA; margin: 0; }
                         .rdp-day_selected:not([disabled]) { font-weight: bold; background-color: #DCEEAA; color: #1A1A1A; }

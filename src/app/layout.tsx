@@ -13,8 +13,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Financial Dashboard | Hike",
+  title: "Hike Dashboard",
   description: "Dashboard Financeiro Hike Marketing",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 import { Sidebar } from "@/components/Sidebar";

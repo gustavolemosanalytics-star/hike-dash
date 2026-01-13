@@ -8,6 +8,7 @@ export interface Transaction {
     amount: number;
     bu: string;
     macroCategory: string;
+    category: string;
     group: string;
     project: string;
     cluster: string;
@@ -115,7 +116,8 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         type: findIdx(['Tipo']),
         amount: findIdx(['Valor', 'Quantia', 'Total', 'R$']),
         bu: findIdx(['BU', 'Unidade', 'Business', 'Unidade de Negócio', 'Unit']),
-        macro: findIdx(['Macro', 'Categoria']),
+        macro: findIdx(['Macro', 'Macro Categoria']),
+        category: findIdx(['Categoria', 'Detalhamento', 'Cat']),
         group: findIdx(['Grupo']),
         project: findIdx(['Projeto']),
         cluster: findIdx(['Cluster']),
@@ -206,6 +208,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
             amount,
             bu: row[idx.bu] || 'N/D',
             macroCategory: row[idx.macro] || '',
+            category: row[idx.category] || '',
             group: row[idx.group] || '',
             project: row[idx.project] || '',
             cluster: row[idx.cluster] || '',

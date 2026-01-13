@@ -28,6 +28,7 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
     const [page, setPage] = useState(0);
+    const rowsPerPage = 10;
 
     const filtered = useMemo(() => {
         return transactions.filter(t => {
@@ -112,6 +113,7 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                 const y = getYear(d);
                 const quarterKey = `T${q}, ${y}`;
                 const sortKey = `${y}-${q}`;
+                // Use MacroCategory instead of Category (too granular)
                 const macro = t.macroCategory || "Outros";
 
                 macroSet.add(macro);
@@ -309,7 +311,9 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                             <BarChart data={byMacroQuarter.data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <Tooltip formatter={(val: any) => formatCurrency(Number(val))} />
+                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
+                                {/* Tooltip disabled as requested */}
+                                <Legend wrapperStyle={{ fontSize: '10px' }} />
                                 <Legend wrapperStyle={{ fontSize: '10px' }} />
                                 {byMacroQuarter.macros.map((macro, idx) => (
                                     <Bar
@@ -361,35 +365,35 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                     </div>
 
                     {/* Suppliers List */}
-                    <div className="glass-card rounded-2xl p-0 border border-white/40 flex flex-col overflow-hidden h-[400px]">
-                        <div className="p-5 border-b border-black/5 bg-white/30">
-                            <h3 className="font-semibold text-lg">Fornecedores</h3>
+                    <div className="glass-card rounded-2xl border border-white/40 flex flex-col overflow-hidden h-[478px]">
+                        <div className="px-6 py-4 border-b border-slate-200/50 bg-gradient-to-r from-slate-50 to-white">
+                            <h3 className="text-lg font-semibold text-slate-800">Fornecedores</h3>
                         </div>
-                        <div className="flex-1 overflow-auto bg-white/20">
-                            <table className="w-full text-sm">
-                                <thead className="bg-black/5 text-xs uppercase font-semibold text-secondary-foreground sticky top-0 backdrop-blur-md">
-                                    <tr>
-                                        <th className="px-4 py-3 text-left">Fornecedor</th>
-                                        <th className="px-4 py-3 text-right">Pago</th>
-                                        <th className="px-4 py-3 text-right">A Pagar</th>
+                        <div className="flex-1 overflow-auto">
+                            <table className="w-full">
+                                <thead className="sticky top-0 z-10">
+                                    <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
+                                        <th className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-left">Fornecedor</th>
+                                        <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Pago</th>
+                                        <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">A Pagar</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-black/5">
-                                    {suppliersData.slice(page * 8, (page + 1) * 8).map((supplier: any, i) => (
-                                        <tr key={i} className="hover:bg-white/40 transition-colors">
-                                            <td className="px-4 py-3 font-medium text-xs max-w-[120px] truncate" title={supplier.name}>{supplier.name}</td>
-                                            <td className="px-4 py-3 text-right text-xs">{formatCurrency(supplier.pago)}</td>
-                                            <td className="px-4 py-3 text-right text-xs text-secondary-foreground/70">{formatCurrency(supplier.aPagar)}</td>
+                                <tbody className="divide-y divide-slate-100">
+                                    {suppliersData.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((supplier: any, i) => (
+                                        <tr key={i} className="group transition-all duration-200 hover:bg-gradient-to-r hover:from-[#DCEEAA]/10 hover:to-transparent">
+                                            <td className="px-6 py-3 font-medium text-sm text-slate-700 max-w-[150px] truncate" title={supplier.name}>{supplier.name}</td>
+                                            <td className="px-4 py-3 text-right text-sm font-semibold text-green-600">{formatCurrency(supplier.pago)}</td>
+                                            <td className="px-4 py-3 text-right text-sm text-slate-500">{formatCurrency(supplier.aPagar)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                        <div className="p-2 flex justify-between items-center border-t border-black/5 bg-white/30">
-                            <span className="text-xs text-secondary-foreground">Pg {page + 1}</span>
-                            <div className="flex gap-1">
-                                <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
-                                <button onClick={() => setPage(page + 1)} disabled={(page + 1) * 8 >= suppliersData.length} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+                        <div className="px-4 py-2 border-t border-slate-200/50 bg-gradient-to-r from-white to-slate-50 flex items-center justify-between">
+                            <span className="text-xs text-slate-500">Pg {page + 1}</span>
+                            <div className="flex items-center gap-1">
+                                <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 transition-all"><ChevronLeft className="w-4 h-4 text-slate-600" /></button>
+                                <button onClick={() => setPage(page + 1)} disabled={(page + 1) * rowsPerPage >= suppliersData.length} className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-30 transition-all"><ChevronRight className="w-4 h-4 text-slate-600" /></button>
                             </div>
                         </div>
                     </div>

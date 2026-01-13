@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { Transaction } from "@/lib/data";
 import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-    CartesianGrid, Legend, Cell, LabelList, PieChart, Pie
+    CartesianGrid, Legend, Cell, LabelList, PieChart, Pie, ReferenceLine
 } from "recharts";
 import { motion } from "framer-motion";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { AnalysisBoard } from "@/components/AnalysisBoard";
 import { KPICard } from "@/components/ui/KPICard";
 import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
@@ -26,8 +27,10 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
     const [selectedCluster, setSelectedCluster] = useState<string>("All");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
-    // Pagination for table
+    // Pagination for tables
     const [page, setPage] = useState(0);
+    const [clusterTablePage, setClusterTablePage] = useState(0);
+    const rowsPerPage = 10;
 
     const filtered = useMemo(() => {
         return transactions.filter(t => {
@@ -84,7 +87,7 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
             else map.get(proj).value += t.amount;
         });
 
-        let arr = Array.from(map.values()).sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+        let arr = Array.from(map.values()).sort((a: any, b: any) => b.value - a.value);
         return arr.slice(0, 10);
     }, [filtered]);
 
@@ -218,14 +221,14 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                 </div>
 
                 {/* Row 1: Charts */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-6">
-                    <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
+                    <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col lg:col-span-2">
                         <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
                             Top 10 Projetos (Resultado)
                         </h3>
                         <div className="h-[400px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart layout="vertical" data={projectsData} margin={{ left: 40 }}>
+                                <BarChart layout="vertical" data={projectsData} margin={{ left: 40, right: 100 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
@@ -233,11 +236,31 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                         formatter={(val: number | undefined) => formatCurrency(val || 0)}
                                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
                                     />
+                                    <ReferenceLine x={0} stroke="#999" strokeWidth={1} />
                                     <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>
                                         {projectsData.map((entry: any, index: number) => (
                                             <Cell key={`cell-${index}`} fill={entry.value >= 0 ? "#10B981" : "#EF4444"} />
                                         ))}
-                                        <LabelList dataKey="value" position="right" formatter={(val: any) => formatCurrency(Number(val) || 0)} style={{ fontSize: '10px', fill: '#666' }} />
+                                        <LabelList
+                                            dataKey="value"
+                                            content={({ x, y, width, height, value }: any) => {
+                                                const isNegative = value < 0;
+                                                const labelX = isNegative ? (x as number) - 8 : (x as number) + (width || 0) + 8;
+                                                const anchor = isNegative ? 'end' : 'start';
+                                                return (
+                                                    <text
+                                                        x={labelX}
+                                                        y={(y as number) + ((height || 0) / 2) + 4}
+                                                        textAnchor={anchor}
+                                                        fill={isNegative ? '#EF4444' : '#666'}
+                                                        fontSize={10}
+                                                        fontWeight={500}
+                                                    >
+                                                        {formatCurrency(value || 0)}
+                                                    </text>
+                                                );
+                                            }}
+                                        />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -259,7 +282,7 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5">
-                                    {tableData.map((row: any, i: number) => (
+                                    {tableData.slice(page * rowsPerPage, (page + 1) * rowsPerPage).map((row: any, i: number) => (
                                         <tr key={i} className="hover:bg-white/40 transition-colors">
                                             <td className="px-6 py-4 font-medium text-xs">{row.name}</td>
                                             <td className={`px-6 py-4 text-right font-medium text-xs ${row.resultado < 0 ? 'text-red-600' : 'text-green-600'}`}>{formatCurrency(row.resultado)}</td>
@@ -268,6 +291,13 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                        <div className="p-2 flex justify-between items-center border-t border-black/5 bg-white/30">
+                            <span className="text-xs text-secondary-foreground">Pg {page + 1} de {Math.ceil(tableData.length / rowsPerPage)}</span>
+                            <div className="flex gap-1">
+                                <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+                                <button onClick={() => setPage(page + 1)} disabled={(page + 1) * rowsPerPage >= tableData.length} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -289,7 +319,7 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-black/5">
-                                {clusterQuarterData.slice(0, 12).map((row: any, i: number) => (
+                                {clusterQuarterData.slice(clusterTablePage * rowsPerPage, (clusterTablePage + 1) * rowsPerPage).map((row: any, i: number) => (
                                     <tr key={i} className="hover:bg-white/40">
                                         <td className="px-4 py-2 text-xs">{row.cluster}</td>
                                         <td className="px-4 py-2 text-xs">{row.quarter}</td>
@@ -316,6 +346,13 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="p-2 flex justify-between items-center border-t border-black/5 bg-white/30">
+                        <span className="text-xs text-secondary-foreground">Pg {clusterTablePage + 1} de {Math.ceil(clusterQuarterData.length / rowsPerPage)}</span>
+                        <div className="flex gap-1">
+                            <button onClick={() => setClusterTablePage(Math.max(0, clusterTablePage - 1))} disabled={clusterTablePage === 0} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronLeft className="w-4 h-4" /></button>
+                            <button onClick={() => setClusterTablePage(clusterTablePage + 1)} disabled={(clusterTablePage + 1) * rowsPerPage >= clusterQuarterData.length} className="p-1 hover:bg-black/5 rounded disabled:opacity-30"><ChevronRight className="w-4 h-4" /></button>
+                        </div>
                     </div>
                 </div>
 
@@ -404,13 +441,36 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                         <h3 className="text-lg font-semibold mb-6">Categoria por Contas a Pagar</h3>
                         <div className="h-[350px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart layout="vertical" data={piePagarData} margin={{ left: 120 }}>
+                                <BarChart layout="vertical" data={piePagarData} margin={{ left: 120, right: 80 }}>
                                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" width={150} tick={{ fontSize: 9 }} interval={0} />
                                     <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
-                                    <Bar dataKey="value" fill="#DCEEAA" radius={[0, 4, 4, 0]}>
-                                        <LabelList dataKey="value" position="right" formatter={(val: any) => formatCurrency(val)} style={{ fontSize: 9, fill: '#333' }} />
+                                    <ReferenceLine x={0} stroke="#999" strokeWidth={1} />
+                                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                        {piePagarData.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={entry.value >= 0 ? '#DCEEAA' : '#F8BBD9'} />
+                                        ))}
+                                        <LabelList
+                                            dataKey="value"
+                                            content={({ x, y, width, height, value }: any) => {
+                                                const isNegative = value < 0;
+                                                const labelX = isNegative ? (x as number) - 8 : (x as number) + (width || 0) + 8;
+                                                const anchor = isNegative ? 'end' : 'start';
+                                                return (
+                                                    <text
+                                                        x={labelX}
+                                                        y={(y as number) + ((height || 0) / 2) + 4}
+                                                        textAnchor={anchor}
+                                                        fill={isNegative ? '#E11D48' : '#333'}
+                                                        fontSize={9}
+                                                        fontWeight={500}
+                                                    >
+                                                        {formatCurrency(value || 0)}
+                                                    </text>
+                                                );
+                                            }}
+                                        />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
