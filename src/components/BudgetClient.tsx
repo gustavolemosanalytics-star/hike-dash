@@ -414,20 +414,32 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                         <tbody>
                                             {bu.orcadoRows.length > 0 ? (
                                                 <>
-                                                    {bu.orcadoRows.slice(0, 8).map((row: any, idx: number) => (
-                                                        <tr
-                                                            key={idx}
-                                                            className={`border-b border-slate-50 ${row.isSubtotal ? 'bg-slate-50 font-semibold' : ''}`}
-                                                        >
-                                                            <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
-                                                                {row.isSubtotal ? '' : '•'} {row.tipo.replace(/^\d\.\s*/, '')}
-                                                            </td>
-                                                            <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
-                                                            <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-slate-700' : 'text-red-600'}`}>
-                                                                {formatCurrency(row.valor)}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {bu.orcadoRows.slice(0, 8).map((row: any, idx: number) => {
+                                                        const isReceber = row.tipo.includes('Receber');
+                                                        const isPagar = row.tipo.includes('Pagar');
+                                                        const rowClass = row.isSubtotal
+                                                            ? 'bg-slate-50 font-semibold'
+                                                            : isReceber
+                                                                ? 'border-l-[3px] border-l-emerald-400 bg-emerald-50/30'
+                                                                : isPagar
+                                                                    ? 'border-l-[3px] border-l-rose-400 bg-rose-50/30'
+                                                                    : 'hover:bg-slate-50/50';
+
+                                                        return (
+                                                            <tr
+                                                                key={idx}
+                                                                className={`border-b border-slate-50 ${rowClass}`}
+                                                            >
+                                                                <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
+                                                                    {row.isSubtotal ? '' : '•'} {row.tipo.replace(/^\d\.\s*/, '')}
+                                                                </td>
+                                                                <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
+                                                                <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-slate-700' : 'text-red-600'}`}>
+                                                                    {formatCurrency(row.valor)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                     <tr className="bg-slate-100 font-bold">
                                                         <td className="py-2 text-slate-800" colSpan={2}>Total</td>
                                                         <td className={`py-2 text-right ${bu.orcadoTotal >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
@@ -465,20 +477,32 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                         <tbody>
                                             {bu.realizadoRows.length > 0 ? (
                                                 <>
-                                                    {bu.realizadoRows.slice(0, 8).map((row: any, idx: number) => (
-                                                        <tr
-                                                            key={idx}
-                                                            className={`border-b border-slate-50 ${row.isSubtotal ? 'bg-slate-50 font-semibold' : ''}`}
-                                                        >
-                                                            <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
-                                                                {row.isSubtotal ? '' : '•'} {row.tipo.replace(/^\d\.\s*/, '')}
-                                                            </td>
-                                                            <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
-                                                            <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                                {formatCurrency(row.valor)}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {bu.realizadoRows.slice(0, 8).map((row: any, idx: number) => {
+                                                        const isReceber = row.tipo.includes('Receber');
+                                                        const isPagar = row.tipo.includes('Pagar');
+                                                        const rowClass = row.isSubtotal
+                                                            ? 'bg-slate-50 font-semibold'
+                                                            : isReceber
+                                                                ? 'border-l-[3px] border-l-emerald-400 bg-emerald-50/30'
+                                                                : isPagar
+                                                                    ? 'border-l-[3px] border-l-rose-400 bg-rose-50/30'
+                                                                    : 'hover:bg-slate-50/50';
+
+                                                        return (
+                                                            <tr
+                                                                key={idx}
+                                                                className={`border-b border-slate-50 ${rowClass}`}
+                                                            >
+                                                                <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
+                                                                    {row.isSubtotal ? '' : '•'} {row.tipo.replace(/^\d\.\s*/, '')}
+                                                                </td>
+                                                                <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
+                                                                <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                                                    {formatCurrency(row.valor)}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                     <tr className="bg-slate-100 font-bold">
                                                         <td className="py-2 text-slate-800" colSpan={2}>Total</td>
                                                         <td className={`py-2 text-right ${bu.realizadoTotal >= 0 ? 'text-green-700' : 'text-red-600'}`}>
