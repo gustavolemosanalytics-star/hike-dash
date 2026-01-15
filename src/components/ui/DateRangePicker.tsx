@@ -96,7 +96,7 @@ export function DateRangePicker({ date, setDate, className }: DateRangePickerPro
             </div>
 
             {isOpen && (
-                <div className="absolute top-full mt-2 right-0 z-[100] bg-[#0F172A] border border-white/10 rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 text-white">
+                <div className="absolute top-full mt-2 left-0 z-[100] bg-[#0F172A] border border-white/10 rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 text-white">
                     {/* Preset Buttons */}
                     <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b border-white/10">
                         {getPresets().map((preset) => (
