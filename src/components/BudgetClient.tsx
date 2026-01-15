@@ -106,7 +106,7 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
 // BU Header with visual emphasis
 function BUHeader({ buName }: { buName: string }) {
     return (
-        <div className="flex items-center gap-4 mt-4 mb-6">
+        <div className="flex items-center gap-4 my-5">
             <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-200 to-slate-300"></div>
             <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full blur-md opacity-20"></div>
