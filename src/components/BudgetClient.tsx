@@ -86,8 +86,13 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
                 </div>
             </div>
             {/* Value display below */}
-            <div className={`text-lg font-bold mt-1 ${safeValue >= 0 ? 'text-slate-700' : 'text-red-600'}`}>
-                {formatCompactValue(safeValue)}
+            <div className="text-center mt-1">
+                <div className={`text-lg font-bold ${safeValue >= 0 ? 'text-slate-700' : 'text-red-600'}`}>
+                    {formatCompactValue(safeValue)}
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                    Meta: {formatCompact(safeTarget)}
+                </div>
             </div>
             {/* Range labels */}
             <div className="flex justify-between w-full mt-2 px-4 text-xs">
