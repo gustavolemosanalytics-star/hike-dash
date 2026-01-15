@@ -103,15 +103,19 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
     );
 }
 
-// Subtle BU Separator with better emphasis
+// BU Header with visual emphasis
 function BUHeader({ buName }: { buName: string }) {
     return (
-        <div className="flex items-center gap-3 my-8">
-            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-300"></div>
-            <span className="text-base font-bold text-slate-600 uppercase tracking-wide">
-                {buName}
-            </span>
-            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-slate-300 to-slate-300"></div>
+        <div className="flex items-center gap-4 my-8">
+            <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-slate-200 to-slate-300"></div>
+            <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full blur-md opacity-20"></div>
+                <span className="relative inline-flex items-center gap-2 px-6 py-2 bg-gradient-to-r from-slate-700 to-slate-600 text-white text-sm font-bold uppercase tracking-wider rounded-full shadow-lg">
+                    <span className="w-2 h-2 bg-white/80 rounded-full animate-pulse"></span>
+                    {buName}
+                </span>
+            </div>
+            <div className="h-[2px] flex-1 bg-gradient-to-l from-transparent via-slate-200 to-slate-300"></div>
         </div>
     );
 }
