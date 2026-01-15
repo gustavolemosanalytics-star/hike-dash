@@ -106,7 +106,7 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
 // Subtle BU Separator with better emphasis
 function BUHeader({ buName }: { buName: string }) {
     return (
-        <div className="flex items-center gap-3 mt-10 mb-5">
+        <div className="flex items-center gap-3 my-8">
             <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-300"></div>
             <span className="text-base font-bold text-slate-600 uppercase tracking-wide">
                 {buName}
