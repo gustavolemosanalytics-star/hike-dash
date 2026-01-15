@@ -183,7 +183,14 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                                     <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
                                     <Legend />
                                     {Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).slice(0, 10).map((macro, idx) => (
-                                        <Bar key={macro} dataKey={macro} stackId="a" fill={colors[idx % colors.length]} radius={[0, 0, 0, 0]} />
+                                        <Bar key={macro} dataKey={macro} stackId="a" fill={colors[idx % colors.length]} radius={[0, 0, 0, 0]}>
+                                            <LabelList
+                                                dataKey={macro}
+                                                position="center"
+                                                formatter={(val: any) => val > 50000 ? new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 0 }).format(val) : ''}
+                                                style={{ fontSize: 9, fill: '#fff', fontWeight: 600 }}
+                                            />
+                                        </Bar>
                                     ))}
                                 </BarChart>
                             </ResponsiveContainer>

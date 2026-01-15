@@ -302,7 +302,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                     <Bar dataKey="receita" name="Receita" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="receita" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
                                     </Bar>
-                                    <Bar dataKey="despesa" name="Despesa_Custo" fill="#5F6368" radius={[4, 4, 0, 0]}>
+                                    <Bar dataKey="despesa" name="Despesa / Custo" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="despesa" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#5F6368', fontWeight: 600 }} />
                                     </Bar>
                                 </BarChart>
@@ -325,7 +325,7 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                     <Bar dataKey="receita" name="Receita" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="receita" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
                                     </Bar>
-                                    <Bar dataKey="despesa" name="Despesa_Custo" fill="#5F6368" radius={[4, 4, 0, 0]}>
+                                    <Bar dataKey="despesa" name="Despesa / Custo" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="despesa" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#5F6368', fontWeight: 600 }} />
                                     </Bar>
                                 </BarChart>
@@ -368,22 +368,53 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
 // Helper
 function GaugeChart({ value, target }: { value: number, target: number }) {
     const safeValue = isNaN(value) ? 0 : value;
-    const safeTarget = isNaN(target) || target === 0 ? 1 : target; // Avoid div by zero
+    const safeTarget = isNaN(target) || target === 0 ? 1 : target;
     const percentage = Math.min(100, Math.max(0, (safeValue / safeTarget) * 100));
-    const rotation = (percentage / 100) * 180;
+
+    // SVG arc calculation
+    const radius = 80;
+    const strokeWidth = 16;
+    const circumference = Math.PI * radius; // Half circle
+    const fillLength = (percentage / 100) * circumference;
+    const emptyLength = circumference - fillLength;
 
     return (
-        <div className="relative w-64 h-32 overflow-hidden mt-8">
-            <div className="absolute top-0 left-0 w-full h-full bg-slate-200 rounded-t-full"></div>
-            <motion.div
-                initial={{ rotate: 0 }}
-                animate={{ rotate: isNaN(rotation) ? 0 : rotation }}
-                transition={{ duration: 1, type: "spring" }}
-                className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-green-400 to-green-600 origin-bottom rounded-t-full"
-                style={{ transformOrigin: "bottom center" }}
-            ></motion.div>
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-48 h-48 bg-white rounded-full flex items-center justify-center">
+        <div className="relative flex flex-col items-center justify-center">
+            <svg width="200" height="110" viewBox="0 0 200 110">
+                {/* Background arc (gray) */}
+                <path
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    fill="none"
+                    stroke="#E5E7EB"
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                />
+                {/* Filled arc (green gradient) */}
+                <motion.path
+                    d="M 20 100 A 80 80 0 0 1 180 100"
+                    fill="none"
+                    stroke="url(#gaugeGradient)"
+                    strokeWidth={strokeWidth}
+                    strokeLinecap="round"
+                    strokeDasharray={`${circumference}`}
+                    initial={{ strokeDashoffset: circumference }}
+                    animate={{ strokeDashoffset: emptyLength }}
+                    transition={{ duration: 1, type: "spring" }}
+                />
+                {/* Gradient definition */}
+                <defs>
+                    <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <stop offset="0%" stopColor="#22C55E" />
+                        <stop offset="100%" stopColor="#16A34A" />
+                    </linearGradient>
+                </defs>
+            </svg>
+            {/* Percentage text in center */}
+            <div className="absolute bottom-2 text-center">
+                <span className={`text-2xl font-bold ${percentage >= 100 ? 'text-green-600' : percentage >= 50 ? 'text-yellow-600' : 'text-red-500'}`}>
+                    {percentage.toFixed(0)}%
+                </span>
             </div>
         </div>
-    )
+    );
 }

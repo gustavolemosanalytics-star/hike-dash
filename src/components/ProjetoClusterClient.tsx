@@ -153,14 +153,14 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
             .sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
     }, [filtered]);
 
-    // Pie chart data - Contas a Receber by MacroCategory
+    // Pie chart data - Contas a Receber by Category (Valor column)
     const pieReceberData = useMemo(() => {
         const map = new Map();
         let total = 0;
 
         filtered.forEach(t => {
             if (t.type !== '1. Contas a Receber') return;
-            const cat = t.macroCategory || "Outros";
+            const cat = t.category || t.macroCategory || "Outros";
             if (!map.has(cat)) map.set(cat, { name: cat, value: 0 });
             map.get(cat).value += Math.abs(t.amount);
             total += Math.abs(t.amount);

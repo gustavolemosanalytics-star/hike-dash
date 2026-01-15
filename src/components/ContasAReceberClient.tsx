@@ -352,7 +352,7 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                                             dataKey={macro}
                                             position="top"
                                             formatter={(val: any) => val > 0 ? formatCompact(Number(val)) : ''}
-                                            style={{ fontSize: 8, fill: '#333', fontWeight: 500 }}
+                                            style={{ fontSize: 12, fill: '#333', fontWeight: 600 }}
                                         />
                                     </Bar>
                                 ))}
@@ -407,8 +407,8 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                                     {clientsData.slice(page * 8, (page + 1) * 8).map((client: any, i) => (
                                         <tr key={i} className="hover:bg-white/40 transition-colors">
                                             <td className="px-4 py-3 font-medium text-xs max-w-[120px] truncate" title={client.name}>{client.name}</td>
-                                            <td className="px-4 py-3 text-right text-xs">{formatCurrency(client.recebido)}</td>
-                                            <td className="px-4 py-3 text-right text-xs text-secondary-foreground/70">{formatCurrency(client.aReceber)}</td>
+                                            <td className="px-4 py-3 text-right text-xs font-semibold text-green-600 bg-green-50/50">{formatCurrency(client.recebido)}</td>
+                                            <td className="px-4 py-3 text-right text-xs font-semibold text-amber-600 bg-amber-50/50">{formatCurrency(client.aReceber)}</td>
                                         </tr>
                                     ))}
                                 </tbody>

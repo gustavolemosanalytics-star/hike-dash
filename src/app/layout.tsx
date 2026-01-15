@@ -15,13 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hike Dashboard",
   description: "Dashboard Financeiro Hike Marketing",
-  icons: {
-    icon: [
-      { url: "/favicon.png", type: "image/png" },
-    ],
-    shortcut: "/favicon.png",
-    apple: "/favicon.png",
-  },
 };
 
 import { Sidebar } from "@/components/Sidebar";

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
     LayoutDashboard, ArrowDownCircle, ArrowUpCircle, Layers,
-    FolderTree, Users, Box, ChevronLeft, ChevronRight, Menu, X
+    FolderTree, Wallet, Box, ChevronLeft, ChevronRight, Menu, X
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -17,7 +17,7 @@ const menuItems = [
     { name: "Macro", href: "/macrocategoria", icon: Layers },
     { name: "Grupo", href: "/grupo", icon: Box },
     { name: "Projetos", href: "/projeto-cluster", icon: FolderTree },
-    { name: "Pessoas", href: "/pessoas", icon: Users },
+    { name: "Budget", href: "/budget", icon: Wallet },
 ];
 
 interface SidebarContentProps {
