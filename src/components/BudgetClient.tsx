@@ -420,9 +420,9 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                                         const rowClass = row.isSubtotal
                                                             ? 'bg-slate-50 font-semibold'
                                                             : isReceber
-                                                                ? 'border-l-[3px] border-l-emerald-400 bg-emerald-50/30'
+                                                                ? 'border-l-[4px] border-l-emerald-500 bg-emerald-100/50'
                                                                 : isPagar
-                                                                    ? 'border-l-[3px] border-l-rose-400 bg-rose-50/30'
+                                                                    ? 'border-l-[4px] border-l-rose-500 bg-rose-50/50'
                                                                     : 'hover:bg-slate-50/50';
 
                                                         return (
@@ -430,7 +430,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                                                 key={idx}
                                                                 className={`border-b border-slate-50 ${rowClass}`}
                                                             >
-                                                                <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
+                                                                <td className="py-1.5 pl-4 text-slate-700 truncate max-w-[100px]">
                                                                     {row.tipo.replace(/^\d\.\s*/, '')}
                                                                 </td>
                                                                 <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
@@ -483,9 +483,9 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                                         const rowClass = row.isSubtotal
                                                             ? 'bg-slate-50 font-semibold'
                                                             : isReceber
-                                                                ? 'border-l-[3px] border-l-emerald-400 bg-emerald-50/30'
+                                                                ? 'border-l-[4px] border-l-emerald-500 bg-emerald-100/50'
                                                                 : isPagar
-                                                                    ? 'border-l-[3px] border-l-rose-400 bg-rose-50/30'
+                                                                    ? 'border-l-[4px] border-l-rose-500 bg-rose-50/50'
                                                                     : 'hover:bg-slate-50/50';
 
                                                         return (
@@ -493,7 +493,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                                                 key={idx}
                                                                 className={`border-b border-slate-50 ${rowClass}`}
                                                             >
-                                                                <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
+                                                                <td className="py-1.5 pl-4 text-slate-700 truncate max-w-[100px]">
                                                                     {row.tipo.replace(/^\d\.\s*/, '')}
                                                                 </td>
                                                                 <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
