@@ -98,15 +98,15 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
     );
 }
 
-// Elegant BU Header - more integrated, less spacing
+// Subtle BU Separator
 function BUHeader({ buName }: { buName: string }) {
     return (
-        <div className="flex items-center gap-4 mb-4 mt-6">
-            <div className="h-px flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-300"></div>
-            <h2 className="text-xl font-bold text-slate-700 px-4 py-1.5 bg-slate-100 rounded-lg border border-slate-200 shadow-sm">
+        <div className="flex items-center gap-3 my-6">
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-slate-200"></div>
+            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
                 {buName}
-            </h2>
-            <div className="h-px flex-1 bg-gradient-to-l from-transparent via-slate-300 to-slate-300"></div>
+            </span>
+            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-slate-200"></div>
         </div>
     );
 }
