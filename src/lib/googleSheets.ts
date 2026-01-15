@@ -126,3 +126,46 @@ export async function getGoogleSheetsData(range: string) {
         return null;
     }
 }
+
+// Fetch data from a specific spreadsheet (for budget data)
+export async function getGoogleSheetsDataFromSpreadsheet(targetSpreadsheetId: string, range: string) {
+    try {
+        const auth = getAuth();
+        const client = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: client as any });
+
+        console.log(`getGoogleSheetsDataFromSpreadsheet: Fetching from ${targetSpreadsheetId}, range "${range}"...`);
+        const response = await sheets.spreadsheets.values.get({
+            spreadsheetId: targetSpreadsheetId,
+            range,
+        });
+
+        if (!response.data.values) {
+            console.warn(`getGoogleSheetsDataFromSpreadsheet: No data found`);
+            return [];
+        }
+
+        console.log(`getGoogleSheetsDataFromSpreadsheet: Successfully fetched ${response.data.values.length} rows`);
+        return response.data.values;
+    } catch (error: any) {
+        console.error('Error fetching from spreadsheet:', error.message);
+        return null;
+    }
+}
+
+// Get sheet names from a specific spreadsheet
+export async function getSheetNamesFromSpreadsheet(targetSpreadsheetId: string) {
+    try {
+        const auth = getAuth();
+        const client = await auth.getClient();
+        const sheets = google.sheets({ version: 'v4', auth: client as any });
+
+        const response = await sheets.spreadsheets.get({
+            spreadsheetId: targetSpreadsheetId
+        });
+        return response.data.sheets?.map(s => s.properties?.title) || [];
+    } catch (error) {
+        console.error('Error fetching sheet names from spreadsheet:', error);
+        return [];
+    }
+}

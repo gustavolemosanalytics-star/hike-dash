@@ -1,4 +1,4 @@
-import { getGoogleSheetsData, getSheetNames } from './googleSheets';
+import { getGoogleSheetsData, getSheetNames, getGoogleSheetsDataFromSpreadsheet, getSheetNamesFromSpreadsheet } from './googleSheets';
 import { parse, isValid } from 'date-fns';
 
 export interface Transaction {
@@ -222,4 +222,82 @@ export async function fetchTransactions(): Promise<Transaction[]> {
 
     cache = { data, timestamp: now };
     return data;
+}
+
+// Budget data interface
+export interface BudgetEntry {
+    bu: string;
+    tipo: string;
+    macroCategory: string;
+    valor: number;
+}
+
+// Cache for budget data
+let budgetCache: { data: BudgetEntry[]; timestamp: number } | null = null;
+const BUDGET_SPREADSHEET_ID = '1aXwMDh6MYCmrUs17uE0Ulu1lTUJlbewiJRzo00WvhmA';
+
+export async function fetchBudgetData(): Promise<BudgetEntry[]> {
+    const now = Date.now();
+    if (budgetCache && (now - budgetCache.timestamp < CACHE_TTL)) {
+        return budgetCache.data;
+    }
+
+    console.log('fetchBudgetData: Fetching from budget spreadsheet...');
+
+    try {
+        // First get sheet names
+        const sheets = await getSheetNamesFromSpreadsheet(BUDGET_SPREADSHEET_ID);
+        console.log('fetchBudgetData: Available sheets:', sheets);
+
+        if (!sheets || sheets.length === 0) {
+            console.warn('fetchBudgetData: No sheets found');
+            return [];
+        }
+
+        // Use first sheet or one containing "Budget"
+        let sheetName = sheets.find(s => s && s.toLowerCase().includes('budget')) || sheets[0];
+        console.log('fetchBudgetData: Using sheet:', sheetName);
+
+        const range = `'${sheetName}'!A:Z`;
+        const rows = await getGoogleSheetsDataFromSpreadsheet(BUDGET_SPREADSHEET_ID, range);
+
+        if (!rows || rows.length < 2) {
+            console.warn('fetchBudgetData: No data found');
+            return [];
+        }
+
+        // Find header row
+        const headers = rows[0].map((h: string) => h?.toLowerCase().trim() || '');
+        console.log('fetchBudgetData: Headers found:', headers);
+
+        // Map column indices
+        const idx = {
+            bu: headers.findIndex((h: string) => h.includes('bu') || h.includes('business')),
+            tipo: headers.findIndex((h: string) => h.includes('tipo')),
+            macro: headers.findIndex((h: string) => h.includes('macro') || h.includes('categoria')),
+            valor: headers.findIndex((h: string) => h.includes('valor') || h.includes('sum') || h.includes('total'))
+        };
+
+        console.log('fetchBudgetData: Column indices:', idx);
+
+        const data: BudgetEntry[] = rows.slice(1)
+            .filter((row: any[]) => row && row.length > 0)
+            .map((row: any[]) => {
+                const valorStr = (row[idx.valor] || '0').toString().replace(/[^\d.,-]/g, '').replace(',', '.');
+                return {
+                    bu: row[idx.bu] || 'N/D',
+                    tipo: row[idx.tipo] || '',
+                    macroCategory: row[idx.macro] || 'Outros',
+                    valor: parseFloat(valorStr) || 0
+                };
+            })
+            .filter((entry: BudgetEntry) => entry.valor !== 0);
+
+        console.log('fetchBudgetData: Parsed', data.length, 'budget entries');
+        budgetCache = { data, timestamp: now };
+        return data;
+    } catch (error) {
+        console.error('fetchBudgetData: Error:', error);
+        return [];
+    }
 }
