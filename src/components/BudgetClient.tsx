@@ -431,7 +431,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                                                 className={`border-b border-slate-50 ${rowClass}`}
                                                             >
                                                                 <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
-                                                                    {row.isSubtotal ? '' : '•'} {row.tipo.replace(/^\d\.\s*/, '')}
+                                                                    {row.tipo.replace(/^\d\.\s*/, '')}
                                                                 </td>
                                                                 <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
                                                                 <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-slate-700' : 'text-red-600'}`}>
@@ -494,7 +494,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                                                 className={`border-b border-slate-50 ${rowClass}`}
                                                             >
                                                                 <td className="py-1.5 text-slate-700 truncate max-w-[100px]">
-                                                                    {row.isSubtotal ? '' : '•'} {row.tipo.replace(/^\d\.\s*/, '')}
+                                                                    {row.tipo.replace(/^\d\.\s*/, '')}
                                                                 </td>
                                                                 <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
                                                                 <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
