@@ -275,10 +275,10 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                     <Tooltip formatter={(val: any, name: any) => name === 'Margem' ? `${Number(val).toFixed(2)}%` : formatCurrency(Number(val))} />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
 
-                                    <Bar yAxisId="left" dataKey="receita" name="Receita" fill="#DCEEAA" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Bar yAxisId="left" dataKey="receita" name="Receita" fill="#166534" radius={[4, 4, 0, 0]} barSize={20} />
                                     <Bar yAxisId="left" dataKey="despesa" name="Despesa" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
-                                    <Bar yAxisId="left" dataKey="resultado" name="Resultado" fill="#10B981" radius={[4, 4, 0, 0]} barSize={20} />
-                                    <Line yAxisId="right" type="monotone" dataKey="margem" name="Margem" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 3 }} />
+                                    <Bar yAxisId="left" dataKey="resultado" name="Resultado" fill="#86EFAC" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Line yAxisId="right" type="monotone" dataKey="margem" name="Margem" stroke="#4A5568" strokeWidth={2} dot={{ r: 3 }} />
                                 </ComposedChart>
                             </ResponsiveContainer>
                         </div>

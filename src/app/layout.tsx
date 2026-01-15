@@ -16,7 +16,11 @@ export const metadata: Metadata = {
   title: "Hike Dashboard",
   description: "Dashboard Financeiro Hike Marketing",
   icons: {
-    icon: "/favicon.png",
+    icon: [
+      { url: "/favicon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
   },
 };
 

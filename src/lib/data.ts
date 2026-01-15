@@ -36,7 +36,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
 
     // 2. Strategy: Find the best matching sheet
     let selectedSheet = '';
-    const targetName = "Bdados Tratada Fchto 2025";
+    const targetName = "Bdados Tratada";
 
     // A. Clean match (ignore case and extra spaces)
     const normalize = (s: string) => s.toLowerCase().replace(/\s+/g, '');
