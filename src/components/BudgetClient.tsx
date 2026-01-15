@@ -98,15 +98,15 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
     );
 }
 
-// Subtle BU Separator
+// Subtle BU Separator with better emphasis
 function BUHeader({ buName }: { buName: string }) {
     return (
-        <div className="flex items-center gap-3 my-6">
-            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-slate-200"></div>
-            <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="flex items-center gap-3 mt-10 mb-5">
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent via-slate-300 to-slate-300"></div>
+            <span className="text-base font-bold text-slate-600 uppercase tracking-wide">
                 {buName}
             </span>
-            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-slate-200"></div>
+            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent via-slate-300 to-slate-300"></div>
         </div>
     );
 }
@@ -383,7 +383,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                         <BUHeader buName={bu.buName} />
 
                         {/* Integrated Card: Tables + Charts */}
-                        <div className="glass-card rounded-2xl border border-white/40 overflow-hidden mb-4">
+                        <div className="glass-card rounded-2xl border border-white/40 overflow-hidden shadow-sm">
                             {/* Top: Two tables side by side */}
                             <div className="grid grid-cols-1 lg:grid-cols-2">
                                 {/* Left: Orçado Table */}
