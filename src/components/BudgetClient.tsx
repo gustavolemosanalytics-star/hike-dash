@@ -247,8 +247,8 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
 
             // Calculate totals
             let orcadoTotal = 0;
-            budgetMap.forEach(tipoMap => {
-                tipoMap.forEach(val => orcadoTotal += val);
+            budgetMap.forEach((tipoMap: Map<string, number>) => {
+                tipoMap.forEach((val: number) => orcadoTotal += val);
             });
 
             // Specific target or calculated budget total
@@ -259,13 +259,13 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
             const allMacros = new Set<string>();
 
             // From Budget
-            budgetMap.forEach((tipoMap, tipo) => {
-                tipoMap.forEach((val, macro) => allMacros.add(macro));
+            budgetMap.forEach((tipoMap: Map<string, number>, tipo: string) => {
+                tipoMap.forEach((val: number, macro: string) => allMacros.add(macro));
             });
 
             // From Realized
-            realizedMap.forEach((tipoMap, tipo) => {
-                tipoMap.forEach((val, macro) => allMacros.add(macro));
+            realizedMap.forEach((tipoMap: Map<string, number>, tipo: string) => {
+                tipoMap.forEach((val: number, macro: string) => allMacros.add(macro));
             });
 
             const rows: any[] = [];
@@ -276,7 +276,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                 let macroTipo = '';
 
                 // Sum budget for this macro
-                budgetMap.forEach((tipoMap, tipo) => {
+                budgetMap.forEach((tipoMap: Map<string, number>, tipo: string) => {
                     const val = tipoMap.get(macro);
                     if (val !== undefined) {
                         macroOrcado += val;
@@ -285,7 +285,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                 });
 
                 // Sum realized for this macro
-                realizedMap.forEach((tipoMap, tipo) => {
+                realizedMap.forEach((tipoMap: Map<string, number>, tipo: string) => {
                     const val = tipoMap.get(macro);
                     if (val !== undefined) {
                         macroRealizado += val;
@@ -338,6 +338,16 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
 
     const formatCurrency = (val: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    };
+
+    const formatCompact = (val: number) => {
+        const absVal = Math.abs(val);
+        if (absVal >= 1000000) {
+            return (val < 0 ? '-' : '') + 'R$ ' + (absVal / 1000000).toFixed(1) + ' mi';
+        } else if (absVal >= 1000) {
+            return (val < 0 ? '-' : '') + 'R$ ' + (absVal / 1000).toFixed(0) + ' mil';
+        }
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
     };
 
     return (
@@ -472,7 +482,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                             <Tooltip
                                                 cursor={{ fill: '#f1f5f9' }}
                                                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                formatter={(value: number) => formatCompact(value)}
+                                                formatter={(value: any) => formatCompact(Number(value || 0))}
                                             />
                                             <Bar dataKey="Orçado" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={20} />
                                             <Bar dataKey="Realizado" fill="#64748b" radius={[4, 4, 0, 0]} barSize={20} />
