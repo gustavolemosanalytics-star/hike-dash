@@ -17,6 +17,7 @@ export interface Transaction {
     pendingAmount: number;
     client: string;
     docId: string; // CNPJ or CPF
+    budgetAmount: number;
 }
 
 // Simple in-memory cache
@@ -126,6 +127,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
         pendingAmount: findIdx(['Pagar', 'Receber', 'Pendente', 'Aberto']),
         client: findIdx(['Cliente', 'Fornecedor', 'Parceiro', 'Nome']),
         docId: findIdx(['CNPJ', 'CPF', 'Documento', 'ID', 'Inscrição']),
+        budget: findIdx(['Orçamento', 'Orcamento', 'Budget', 'Previsto', 'Meta']),
     };
 
     // If amount is not found by name, try to FIND IT by content (fallback)
@@ -184,6 +186,7 @@ export async function fetchTransactions(): Promise<Transaction[]> {
 
     const data = dataRows.map(row => {
         const amount = cleanCurrency(row[idx.amount]);
+        const budgetAmount = cleanCurrency(row[idx.budget]);
         const paidAmount = cleanCurrency(row[idx.paidAmount]);
         const pendingAmount = cleanCurrency(row[idx.pendingAmount]);
 
@@ -216,7 +219,8 @@ export async function fetchTransactions(): Promise<Transaction[]> {
             paidAmount,
             pendingAmount,
             client: row[idx.client] || 'N/D',
-            docId: idx.docId !== -1 ? (row[idx.docId] || '') : ''
+            docId: idx.docId !== -1 ? (row[idx.docId] || '') : '',
+            budgetAmount
         };
     });
 
@@ -234,68 +238,26 @@ export interface BudgetEntry {
 
 // Cache for budget data
 let budgetCache: { data: BudgetEntry[]; timestamp: number } | null = null;
-const BUDGET_SPREADSHEET_ID = '1aXwMDh6MYCmrUs17uE0Ulu1lTUJlbewiJRzo00WvhmA';
+// No longer needed as we fetch from the main spreadsheet via fetchTransactions
+// const BUDGET_SPREADSHEET_ID = '1aXwMDh6MYCmrUs17uE0Ulu1lTUJlbewiJRzo00WvhmA';
 
 export async function fetchBudgetData(): Promise<BudgetEntry[]> {
-    const now = Date.now();
-    if (budgetCache && (now - budgetCache.timestamp < CACHE_TTL)) {
-        return budgetCache.data;
-    }
-
-    console.log('fetchBudgetData: Fetching from budget spreadsheet...');
-
+    // Reuse fetchTransactions to get the data from the same source
+    // This avoids double fetching and ensures consistency
     try {
-        // First get sheet names
-        const sheets = await getSheetNamesFromSpreadsheet(BUDGET_SPREADSHEET_ID);
-        console.log('fetchBudgetData: Available sheets:', sheets);
+        const transactions = await fetchTransactions();
 
-        if (!sheets || sheets.length === 0) {
-            console.warn('fetchBudgetData: No sheets found');
-            return [];
-        }
+        const budgetData: BudgetEntry[] = transactions
+            .filter(t => t.budgetAmount && t.budgetAmount !== 0)
+            .map(t => ({
+                bu: t.bu,
+                tipo: t.type,
+                macroCategory: t.macroCategory,
+                valor: t.budgetAmount
+            }));
 
-        // Use first sheet or one containing "Budget"
-        let sheetName = sheets.find(s => s && s.toLowerCase().includes('budget')) || sheets[0];
-        console.log('fetchBudgetData: Using sheet:', sheetName);
-
-        const range = `'${sheetName}'!A:Z`;
-        const rows = await getGoogleSheetsDataFromSpreadsheet(BUDGET_SPREADSHEET_ID, range);
-
-        if (!rows || rows.length < 2) {
-            console.warn('fetchBudgetData: No data found');
-            return [];
-        }
-
-        // Find header row
-        const headers = rows[0].map((h: string) => h?.toLowerCase().trim() || '');
-        console.log('fetchBudgetData: Headers found:', headers);
-
-        // Map column indices
-        const idx = {
-            bu: headers.findIndex((h: string) => h.includes('bu') || h.includes('business')),
-            tipo: headers.findIndex((h: string) => h.includes('tipo')),
-            macro: headers.findIndex((h: string) => h.includes('macro') || h.includes('categoria')),
-            valor: headers.findIndex((h: string) => h.includes('valor') || h.includes('sum') || h.includes('total'))
-        };
-
-        console.log('fetchBudgetData: Column indices:', idx);
-
-        const data: BudgetEntry[] = rows.slice(1)
-            .filter((row: any[]) => row && row.length > 0)
-            .map((row: any[]) => {
-                const valorStr = (row[idx.valor] || '0').toString().replace(/[^\d.,-]/g, '').replace(',', '.');
-                return {
-                    bu: row[idx.bu] || 'N/D',
-                    tipo: row[idx.tipo] || '',
-                    macroCategory: row[idx.macro] || 'Outros',
-                    valor: parseFloat(valorStr) || 0
-                };
-            })
-            .filter((entry: BudgetEntry) => entry.valor !== 0);
-
-        console.log('fetchBudgetData: Parsed', data.length, 'budget entries');
-        budgetCache = { data, timestamp: now };
-        return data;
+        console.log('fetchBudgetData: Derived', budgetData.length, 'budget entries from transactions');
+        return budgetData;
     } catch (error) {
         console.error('fetchBudgetData: Error:', error);
         return [];
