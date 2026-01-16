@@ -94,11 +94,6 @@ function BudgetGauge({ value, target, label }: { value: number, target: number, 
                     Meta: {formatCompact(safeTarget)}
                 </div>
             </div>
-            {/* Range labels */}
-            <div className="flex justify-between w-full mt-2 px-4 text-xs">
-                <span className="text-green-500 font-medium">R$ 0</span>
-                <span className="text-slate-400 font-medium">{formatCompact(safeTarget)}</span>
-            </div>
         </div>
     );
 }
@@ -141,11 +136,6 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
         });
     }, [transactions, selectedBU, dateRange]);
 
-    // Get unique BUs from transactions
-    const allBUs = useMemo(() =>
-        Array.from(new Set(transactions.map(t => t.bu).filter(bu => bu && bu !== 'N/D'))).sort()
-        , [transactions]);
-
     // Aggregate budget data (Orçado) by BU, Tipo, and MacroCategory
     const budgetByBU = useMemo(() => {
         const map = new Map<string, Map<string, Map<string, number>>>();
@@ -170,17 +160,6 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
             tipoMap.set(macro, (tipoMap.get(macro) || 0) + entry.valor);
         });
 
-        return map;
-    }, [budgetData]);
-
-    // Budget totals by BU (for meta calculation)
-    const metasByBU = useMemo(() => {
-        const map: Record<string, number> = {};
-        budgetData.forEach(entry => {
-            if (!entry.bu || entry.bu === 'N/D') return;
-            if (!map[entry.bu]) map[entry.bu] = 0;
-            map[entry.bu] += entry.valor;
-        });
         return map;
     }, [budgetData]);
 
@@ -229,6 +208,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
             }
             if (t.type === '2. Contas a Pagar') {
                 entry.despesa += Math.abs(t.amount);
+                // Store negative value for Pagar
                 tipoMap.set(macro, (tipoMap.get(macro) || 0) - Math.abs(t.amount));
             }
 
@@ -242,362 +222,267 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
     const combinedData = useMemo(() => {
         const result: any[] = [];
 
+        // Specific targets per BU
+        const BU_TARGETS: Record<string, number> = {
+            'Branding': 100000,
+            'Marketing': 300000,
+            'HBX': 500000,
+            'SG&A': -1000000,
+            'Sg&a': -1000000
+        };
+
         // Get all unique BUs from both sources
         const allBUNames = new Set([
             ...Array.from(budgetByBU.keys()),
             ...Array.from(realizedByBU.keys())
         ]);
 
-        allBUNames.forEach(buName => {
-            const budgetData = budgetByBU.get(buName);
-            const realizedData = realizedByBU.get(buName);
+        Array.from(allBUNames).sort().forEach(buName => {
+            if (buName === 'N/D') return;
 
-            // Build orçado table data
-            const orcadoRows: any[] = [];
+            // Get maps
+            const budgetMap = budgetByBU.get(buName) || new Map();
+            const realizedEntry = realizedByBU.get(buName);
+            const realizedMap = realizedEntry?.tipoData || new Map();
+
+            // Calculate totals
             let orcadoTotal = 0;
+            budgetMap.forEach(tipoMap => {
+                tipoMap.forEach(val => orcadoTotal += val);
+            });
 
-            if (budgetData) {
-                // 1. Contas a Receber
-                const contasReceber = budgetData.get('1. Contas a Receber');
-                if (contasReceber) {
-                    contasReceber.forEach((valor, macro) => {
-                        orcadoRows.push({
-                            tipo: '1. Contas a Receber',
-                            macroCategoria: macro,
-                            valor: valor,
-                            isSubtotal: false
-                        });
-                        orcadoTotal += valor;
-                    });
-                    const subtotal = Array.from(contasReceber.values()).reduce((a, b) => a + b, 0);
-                    orcadoRows.push({
-                        tipo: '1. Contas a Receber Total',
-                        macroCategoria: '',
-                        valor: subtotal,
-                        isSubtotal: true
-                    });
-                }
+            // Specific target or calculated budget total
+            const meta = BU_TARGETS[buName] !== undefined ? BU_TARGETS[buName] : (orcadoTotal || 1000000);
+            const realizadoTotal = realizedEntry?.resultado || 0;
 
-                // 2. Contas a Pagar
-                const contasPagar = budgetData.get('2. Contas a Pagar');
-                if (contasPagar) {
-                    contasPagar.forEach((valor, macro) => {
-                        orcadoRows.push({
-                            tipo: '2. Contas a Pagar',
-                            macroCategoria: macro,
-                            valor: valor,
-                            isSubtotal: false
-                        });
-                        orcadoTotal += valor;
-                    });
-                    const subtotal = Array.from(contasPagar.values()).reduce((a, b) => a + b, 0);
-                    orcadoRows.push({
-                        tipo: '2. Contas a Pagar Total',
-                        macroCategoria: '',
-                        valor: subtotal,
-                        isSubtotal: true
-                    });
-                }
-            }
+            // Collect all unique MacroCategories
+            const allMacros = new Set<string>();
 
-            // Build realizado table data
-            const realizadoRows: any[] = [];
-            let realizadoTotal = 0;
+            // From Budget
+            budgetMap.forEach((tipoMap, tipo) => {
+                tipoMap.forEach((val, macro) => allMacros.add(macro));
+            });
 
-            if (realizedData) {
-                // 1. Contas a Receber
-                const contasReceber = realizedData.tipoData.get('1. Contas a Receber');
-                if (contasReceber) {
-                    contasReceber.forEach((valor, macro) => {
-                        realizadoRows.push({
-                            tipo: '1. Contas a Receber',
-                            macroCategoria: macro,
-                            valor: valor,
-                            isSubtotal: false
-                        });
-                        realizadoTotal += valor;
-                    });
-                    const subtotal = Array.from(contasReceber.values()).reduce((a, b) => a + b, 0);
-                    realizadoRows.push({
-                        tipo: '1. Contas a Receber Total',
-                        macroCategoria: '',
-                        valor: subtotal,
-                        isSubtotal: true
-                    });
-                }
+            // From Realized
+            realizedMap.forEach((tipoMap, tipo) => {
+                tipoMap.forEach((val, macro) => allMacros.add(macro));
+            });
 
-                // 2. Contas a Pagar
-                const contasPagar = realizedData.tipoData.get('2. Contas a Pagar');
-                if (contasPagar) {
-                    contasPagar.forEach((valor, macro) => {
-                        realizadoRows.push({
-                            tipo: '2. Contas a Pagar',
-                            macroCategoria: macro,
-                            valor: valor,
-                            isSubtotal: false
-                        });
-                        realizadoTotal += valor;
-                    });
-                    const subtotal = Array.from(contasPagar.values()).reduce((a, b) => a + b, 0);
-                    realizadoRows.push({
-                        tipo: '2. Contas a Pagar Total',
-                        macroCategoria: '',
-                        valor: subtotal,
-                        isSubtotal: true
-                    });
-                }
-            }
+            const rows: any[] = [];
+
+            Array.from(allMacros).forEach(macro => {
+                let macroOrcado = 0;
+                let macroRealizado = 0;
+                let macroTipo = '';
+
+                // Sum budget for this macro
+                budgetMap.forEach((tipoMap, tipo) => {
+                    const val = tipoMap.get(macro);
+                    if (val !== undefined) {
+                        macroOrcado += val;
+                        if (!macroTipo) macroTipo = tipo;
+                    }
+                });
+
+                // Sum realized for this macro
+                realizedMap.forEach((tipoMap, tipo) => {
+                    const val = tipoMap.get(macro);
+                    if (val !== undefined) {
+                        macroRealizado += val;
+                        if (!macroTipo) macroTipo = tipo;
+                    }
+                });
+
+                // Determine styling class based on type
+                const isReceber = macroTipo.includes('Receber');
+                const isPagar = macroTipo.includes('Pagar');
+
+                rows.push({
+                    macro,
+                    orcado: macroOrcado,
+                    realizado: macroRealizado,
+                    isReceber,
+                    isPagar
+                });
+            });
+
+            // Sort rows by realized value magnitude (descending)
+            rows.sort((a, b) => Math.abs(b.realizado) - Math.abs(a.realizado));
+
+            // Chart Data - Top 5 Categories (Orçado vs Realizado)
+            const chartData = rows.slice(0, 5).map(r => ({
+                name: r.macro.length > 15 ? r.macro.substring(0, 15) + '...' : r.macro,
+                Orçado: Math.abs(r.orcado),
+                Realizado: Math.abs(r.realizado),
+                rawRealizado: r.realizado // for reference
+            }));
 
             result.push({
                 buName,
-                orcadoRows,
+                meta,
+                rows,
                 orcadoTotal,
-                realizadoRows,
                 realizadoTotal,
-                recebido: realizedData?.recebido || 0,
-                aReceber: realizedData?.aReceber || 0,
-                meta: metasByBU[buName] || 0
+                chartData
             });
         });
 
+        // Sort BUs by name
         return result.sort((a, b) => a.buName.localeCompare(b.buName));
-    }, [budgetByBU, realizedByBU, metasByBU]);
+    }, [budgetByBU, realizedByBU]);
 
-    const formatCurrency = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 2 }).format(val);
+    // Filter by selected BU
+    const displayedBUs = selectedBU === "All"
+        ? combinedData
+        : combinedData.filter(d => d.buName === selectedBU);
 
-    const formatCompact = (val: number) =>
-        new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 }).format(val);
+    const formatCurrency = (val: number) => {
+        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
+    };
 
     return (
         <PageLayout>
             <PageHeader
                 title="Budget"
-                subtitle="Orçado vs Realizado por BU"
+                subtitle="Orçado vs Realizado por Unidade de Negócio"
             >
-                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
-                <DateRangePicker date={dateRange} setDate={setDateRange} />
+                <div className="flex items-center gap-2">
+                    <FilterDropdown
+                        label="Business Unit"
+                        options={["All", ...combinedData.map(d => d.buName)]}
+                        value={selectedBU}
+                        onChange={setSelectedBU}
+                    />
+                    <DateRangePicker
+                        date={dateRange}
+                        setDate={setDateRange}
+                    />
+                </div>
             </PageHeader>
 
             <PageContent>
-                {/* Per-BU Sections */}
-                {combinedData.map((bu, index) => (
-                    <motion.div
-                        key={bu.buName}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                    >
-                        {/* BU Header */}
-                        <BUHeader buName={bu.buName} />
-
-                        {/* Integrated Card: Tables + Charts */}
-                        <div className="glass-card rounded-2xl border border-white/40 overflow-hidden shadow-sm">
-                            {/* Top: Two tables side by side */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2">
-                                {/* Left: Orçado Table */}
-                                <div className="p-4 border-b lg:border-b-0 lg:border-r border-slate-100">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-1 h-4 bg-blue-500 rounded-full"></div>
-                                        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                                            Orçado
-                                        </h3>
-                                    </div>
-                                    <table className="w-full text-xs">
-                                        <thead>
-                                            <tr className="border-b border-slate-200">
-                                                <th className="text-left py-1.5 text-slate-500 font-medium">Tipo</th>
-                                                <th className="text-left py-1.5 text-slate-500 font-medium">MacroCategoria</th>
-                                                <th className="text-right py-1.5 text-slate-500 font-medium">Valor</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {bu.orcadoRows.length > 0 ? (
-                                                <>
-                                                    {bu.orcadoRows.slice(0, 8).map((row: any, idx: number) => {
-                                                        const isReceber = row.tipo.includes('Receber');
-                                                        const isPagar = row.tipo.includes('Pagar');
-                                                        const rowClass = row.isSubtotal
-                                                            ? 'bg-slate-50 font-semibold'
-                                                            : isReceber
-                                                                ? 'border-l-[4px] border-l-emerald-500 bg-emerald-100/50'
-                                                                : isPagar
-                                                                    ? 'border-l-[4px] border-l-rose-500 bg-rose-50/50'
-                                                                    : 'hover:bg-slate-50/50';
-
-                                                        return (
-                                                            <tr
-                                                                key={idx}
-                                                                className={`border-b border-slate-50 ${rowClass}`}
-                                                            >
-                                                                <td className="py-1.5 pl-4 text-slate-700 truncate max-w-[100px]">
-                                                                    {row.tipo.replace(/^\d\.\s*/, '')}
-                                                                </td>
-                                                                <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
-                                                                <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-slate-700' : 'text-red-600'}`}>
-                                                                    {formatCurrency(row.valor)}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                    <tr className="bg-slate-100 font-bold">
-                                                        <td className="py-2 text-slate-800" colSpan={2}>Total</td>
-                                                        <td className={`py-2 text-right ${bu.orcadoTotal >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
-                                                            {formatCurrency(bu.orcadoTotal)}
-                                                        </td>
-                                                    </tr>
-                                                </>
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan={3} className="py-6 text-center text-slate-400 text-xs">
-                                                        Sem dados
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Right: Realizado Table */}
-                                <div className="p-4">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <div className="w-1 h-4 bg-green-500 rounded-full"></div>
-                                        <h3 className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
-                                            Realizado
-                                        </h3>
-                                    </div>
-                                    <table className="w-full text-xs">
-                                        <thead>
-                                            <tr className="border-b border-slate-200">
-                                                <th className="text-left py-1.5 text-slate-500 font-medium">Tipo</th>
-                                                <th className="text-left py-1.5 text-slate-500 font-medium">MacroCategoria</th>
-                                                <th className="text-right py-1.5 text-slate-500 font-medium">Valor</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {bu.realizadoRows.length > 0 ? (
-                                                <>
-                                                    {bu.realizadoRows.slice(0, 8).map((row: any, idx: number) => {
-                                                        const isReceber = row.tipo.includes('Receber');
-                                                        const isPagar = row.tipo.includes('Pagar');
-                                                        const rowClass = row.isSubtotal
-                                                            ? 'bg-slate-50 font-semibold'
-                                                            : isReceber
-                                                                ? 'border-l-[4px] border-l-emerald-500 bg-emerald-100/50'
-                                                                : isPagar
-                                                                    ? 'border-l-[4px] border-l-rose-500 bg-rose-50/50'
-                                                                    : 'hover:bg-slate-50/50';
-
-                                                        return (
-                                                            <tr
-                                                                key={idx}
-                                                                className={`border-b border-slate-50 ${rowClass}`}
-                                                            >
-                                                                <td className="py-1.5 pl-4 text-slate-700 truncate max-w-[100px]">
-                                                                    {row.tipo.replace(/^\d\.\s*/, '')}
-                                                                </td>
-                                                                <td className="py-1.5 text-slate-500 truncate max-w-[100px]">{row.macroCategoria}</td>
-                                                                <td className={`py-1.5 text-right font-medium ${row.valor >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                                                    {formatCurrency(row.valor)}
-                                                                </td>
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                    <tr className="bg-slate-100 font-bold">
-                                                        <td className="py-2 text-slate-800" colSpan={2}>Total</td>
-                                                        <td className={`py-2 text-right ${bu.realizadoTotal >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                                                            {formatCurrency(bu.realizadoTotal)}
-                                                        </td>
-                                                    </tr>
-                                                </>
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan={3} className="py-6 text-center text-slate-400 text-xs">
-                                                        Sem dados
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
+                {/* 4 Quadrants Grid */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 pb-10">
+                    {displayedBUs.map((bu, index) => (
+                        <motion.div
+                            key={bu.buName}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                            className="glass-card rounded-2xl border border-white/40 shadow-sm p-6 flex flex-col h-full bg-white/80"
+                        >
+                            {/* Header: Name + Total Badge */}
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold text-slate-700">{bu.buName}</h2>
+                                <div className={`px-4 py-1.5 rounded-full text-sm font-bold border shadow-sm ${bu.realizadoTotal >= 0
+                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                    : 'bg-rose-50 text-rose-700 border-rose-100'
+                                    }`}>
+                                    {formatCurrency(bu.realizadoTotal)}
                                 </div>
                             </div>
 
-                            {/* Divider */}
-                            <div className="border-t border-slate-100"></div>
+                            {/* Top: Unified Table */}
+                            <div className="overflow-x-auto mb-6 flex-grow ">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                                        Realizado por Categoria
+                                    </h3>
+                                </div>
+                                <table className="w-full text-xs">
+                                    <thead>
+                                        <tr className="border-b border-slate-200">
+                                            <th className="text-left py-2 font-medium text-slate-500 pl-4">MacroCategoria</th>
+                                            <th className="text-right py-2 font-medium text-slate-500">Orçado</th>
+                                            <th className="text-right py-2 font-medium text-slate-500">Realizado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {bu.rows.length > 0 ? (
+                                            bu.rows.slice(0, 5).map((row: any, idx: number) => {
+                                                const rowClass = row.isReceber
+                                                    ? 'border-l-[4px] border-l-emerald-500 bg-emerald-100/50'
+                                                    : row.isPagar
+                                                        ? 'border-l-[4px] border-l-rose-500 bg-rose-50/50'
+                                                        : 'hover:bg-slate-50/50';
 
-                            {/* Bottom: Gauge + Chart side by side */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 bg-gradient-to-b from-slate-50/50 to-white">
+                                                return (
+                                                    <tr key={idx} className={`border-b border-slate-50 ${rowClass}`}>
+                                                        <td className="py-2.5 pl-4 text-slate-700 font-medium truncate max-w-[150px]">
+                                                            {row.macro}
+                                                        </td>
+                                                        <td className="py-2.5 text-right text-slate-500">
+                                                            {row.orcado !== 0 ? formatCurrency(row.orcado) : '-'}
+                                                        </td>
+                                                        <td className={`py-2.5 text-right font-bold ${row.realizado >= 0 ? 'text-slate-700' : 'text-red-500'}`}>
+                                                            {formatCurrency(row.realizado)}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={3} className="py-6 text-center text-slate-400">Sem dados</td>
+                                            </tr>
+                                        )}
+                                        {/* Total Row */}
+                                        <tr className="bg-slate-50 font-bold border-t border-slate-200">
+                                            <td className="py-2 pl-4 text-slate-800">Total</td>
+                                            <td className="py-2 text-right text-slate-600">{formatCurrency(bu.orcadoTotal)}</td>
+                                            <td className={`py-2 text-right ${bu.realizadoTotal >= 0 ? 'text-slate-800' : 'text-red-600'}`}>
+                                                {formatCurrency(bu.realizadoTotal)}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="h-px bg-slate-100 mb-6"></div>
+
+                            {/* Bottom: Gauge + Bar Chart */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-[220px]">
                                 {/* Left: Gauge */}
-                                <div className="flex items-center justify-center p-4 border-b lg:border-b-0 lg:border-r border-slate-100">
+                                <div className="flex items-center justify-center border-r border-slate-100 pr-4">
                                     <BudgetGauge
                                         value={bu.realizadoTotal}
-                                        target={bu.meta || Math.abs(bu.orcadoTotal) || 1000000}
+                                        target={bu.meta}
                                         label="% da Meta"
                                     />
                                 </div>
 
-                                {/* Right: Bar chart */}
-                                <div className="p-4">
-                                    <div className="flex items-center gap-4 mb-2">
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="w-2.5 h-2.5 bg-[#DCEEAA] rounded-full"></span>
-                                            <span className="text-xs text-slate-500">Recebido</span>
-                                        </div>
-                                        <div className="flex items-center gap-1.5">
-                                            <span className="w-2.5 h-2.5 bg-slate-500 rounded-full"></span>
-                                            <span className="text-xs text-slate-500">A Receber</span>
-                                        </div>
-                                    </div>
-                                    <div className="h-[140px] w-full">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart
-                                                data={[{
-                                                    name: bu.buName,
-                                                    Recebido: bu.recebido,
-                                                    'A Receber': bu.aReceber
-                                                }]}
-                                                margin={{ top: 15, right: 10, left: 0, bottom: 0 }}
-                                                barCategoryGap="20%"
-                                            >
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
-                                                <XAxis
-                                                    dataKey="name"
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#666', fontSize: 11 }}
-                                                />
-                                                <YAxis
-                                                    tickFormatter={(val) => formatCompact(val)}
-                                                    tick={{ fontSize: 9 }}
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    width={55}
-                                                />
-                                                <Tooltip formatter={(val: any) => formatCurrency(Number(val))} />
-                                                <Bar dataKey="Recebido" fill="#DCEEAA" radius={[4, 4, 0, 0]} barSize={50}>
-                                                    <LabelList
-                                                        dataKey="Recebido"
-                                                        position="top"
-                                                        formatter={(val: any) => formatCompact(Number(val))}
-                                                        style={{ fontSize: 10, fill: '#333', fontWeight: 600 }}
-                                                    />
-                                                </Bar>
-                                                <Bar dataKey="A Receber" fill="#4A5568" radius={[4, 4, 0, 0]} barSize={50}>
-                                                    <LabelList
-                                                        dataKey="A Receber"
-                                                        position="top"
-                                                        formatter={(val: any) => formatCompact(Number(val))}
-                                                        style={{ fontSize: 10, fill: '#333', fontWeight: 600 }}
-                                                    />
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
+                                {/* Right: Bar Chart */}
+                                <div className="flex flex-col justify-center h-full pt-4">
+                                    <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
+                                        Orçado vs Realizado (Top 5)
+                                    </h4>
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={bu.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                            <XAxis
+                                                dataKey="name"
+                                                tick={{ fontSize: 9, fill: '#64748b' }}
+                                                axisLine={false}
+                                                tickLine={false}
+                                                interval={0}
+                                            />
+                                            <YAxis
+                                                hide
+                                            />
+                                            <Tooltip
+                                                cursor={{ fill: '#f1f5f9' }}
+                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                                formatter={(value: number) => formatCompact(value)}
+                                            />
+                                            <Bar dataKey="Orçado" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={20} />
+                                            <Bar dataKey="Realizado" fill="#64748b" radius={[4, 4, 0, 0]} barSize={20} />
+                                        </BarChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
-                        </div>
-                    </motion.div>
-                ))}
+                        </motion.div>
+                    ))}
+                </div>
             </PageContent>
         </PageLayout>
     );
