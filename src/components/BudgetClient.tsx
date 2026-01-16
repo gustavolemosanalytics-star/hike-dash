@@ -115,6 +115,59 @@ function BUHeader({ buName }: { buName: string }) {
     );
 }
 
+// Custom XAxis tick component that wraps long text into two lines
+function CustomXAxisTick({ x, y, payload }: any) {
+    const text = payload?.value || '';
+    const maxCharsPerLine = 10;
+
+    // Split text into two lines if longer than maxCharsPerLine
+    let line1 = text;
+    let line2 = '';
+
+    if (text.length > maxCharsPerLine) {
+        // Find a good break point (space or after maxCharsPerLine)
+        const breakPoint = text.lastIndexOf(' ', maxCharsPerLine);
+        if (breakPoint > 0) {
+            line1 = text.substring(0, breakPoint);
+            line2 = text.substring(breakPoint + 1);
+        } else {
+            line1 = text.substring(0, maxCharsPerLine);
+            line2 = text.substring(maxCharsPerLine);
+        }
+        // Truncate line2 if still too long
+        if (line2.length > maxCharsPerLine) {
+            line2 = line2.substring(0, maxCharsPerLine - 2) + '...';
+        }
+    }
+
+    return (
+        <g transform={`translate(${x},${y})`}>
+            <text
+                x={0}
+                y={0}
+                dy={8}
+                textAnchor="middle"
+                fill="#64748b"
+                fontSize={8}
+            >
+                {line1}
+            </text>
+            {line2 && (
+                <text
+                    x={0}
+                    y={0}
+                    dy={18}
+                    textAnchor="middle"
+                    fill="#64748b"
+                    fontSize={8}
+                >
+                    {line2}
+                </text>
+            )}
+        </g>
+    );
+}
+
 export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
     const [selectedBU, setSelectedBU] = useState<string>("All");
     const [dateRange, setDateRange] = useState<DateRange | undefined>();
@@ -471,10 +524,11 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                             <XAxis
                                                 dataKey="name"
-                                                tick={{ fontSize: 9, fill: '#64748b' }}
+                                                tick={<CustomXAxisTick />}
                                                 axisLine={false}
                                                 tickLine={false}
                                                 interval={0}
+                                                height={40}
                                             />
                                             <YAxis
                                                 hide
