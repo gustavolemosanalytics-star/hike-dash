@@ -114,56 +114,49 @@ function BUHeader({ buName }: { buName: string }) {
         </div>
     );
 }
-
-// Custom XAxis tick component that wraps long text into two lines
+// Custom XAxis tick component that wraps long text into multiple lines
 function CustomXAxisTick({ x, y, payload }: any) {
     const text = payload?.value || '';
-    const maxCharsPerLine = 10;
+    const maxCharsPerLine = 12;
 
-    // Split text into two lines if longer than maxCharsPerLine
-    let line1 = text;
-    let line2 = '';
+    // Split text into multiple lines
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let currentLine = '';
 
-    if (text.length > maxCharsPerLine) {
-        // Find a good break point (space or after maxCharsPerLine)
-        const breakPoint = text.lastIndexOf(' ', maxCharsPerLine);
-        if (breakPoint > 0) {
-            line1 = text.substring(0, breakPoint);
-            line2 = text.substring(breakPoint + 1);
+    words.forEach((word: string) => {
+        if (currentLine.length + word.length + 1 <= maxCharsPerLine) {
+            currentLine = currentLine ? `${currentLine} ${word}` : word;
         } else {
-            line1 = text.substring(0, maxCharsPerLine);
-            line2 = text.substring(maxCharsPerLine);
+            if (currentLine) lines.push(currentLine);
+            // If word itself is too long, break it
+            if (word.length > maxCharsPerLine) {
+                for (let i = 0; i < word.length; i += maxCharsPerLine) {
+                    lines.push(word.substring(i, i + maxCharsPerLine));
+                }
+                currentLine = '';
+            } else {
+                currentLine = word;
+            }
         }
-        // Truncate line2 if still too long
-        if (line2.length > maxCharsPerLine) {
-            line2 = line2.substring(0, maxCharsPerLine - 2) + '...';
-        }
-    }
+    });
+    if (currentLine) lines.push(currentLine);
 
     return (
         <g transform={`translate(${x},${y})`}>
-            <text
-                x={0}
-                y={0}
-                dy={8}
-                textAnchor="middle"
-                fill="#64748b"
-                fontSize={8}
-            >
-                {line1}
-            </text>
-            {line2 && (
+            {lines.map((line, idx) => (
                 <text
+                    key={idx}
                     x={0}
                     y={0}
-                    dy={18}
+                    dy={8 + idx * 10}
                     textAnchor="middle"
                     fill="#64748b"
                     fontSize={8}
                 >
-                    {line2}
+                    {line}
                 </text>
-            )}
+            ))}
         </g>
     );
 }
