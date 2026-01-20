@@ -131,6 +131,10 @@ export function DateRangePicker({ date, setDate, className }: DateRangePickerPro
                         .rdp-day_outside { opacity: 0.3; }
                         .rdp-nav_button { color: white; }
                         .rdp-caption_dropdowns { display: flex; gap: 0.5rem; }
+                        .rdp-dropdown { color: #1A1A1A; background: white; border-radius: 4px; padding: 2px; }
+                        .rdp-dropdown_month, .rdp-dropdown_year { color: #1A1A1A !important; background: #DCEEAA; border-radius: 4px; padding: 2px 6px; font-weight: 600; }
+                        .rdp-dropdown_month:focus, .rdp-dropdown_year:focus { outline: none; }
+                        .rdp-vhidden { display: none; }
                     `}</style>
                     <DayPicker
                         mode="range"

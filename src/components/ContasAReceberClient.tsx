@@ -135,7 +135,7 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                 const y = getYear(d);
                 const quarterKey = `T${q}, ${y}`;
                 const sortKey = `${y}-${q}`;
-                const macro = t.macroCategory || "Outros";
+                const macro = t.category || "Outros"; // Changed from macroCategory to category
 
                 macroSet.add(macro);
 
@@ -279,7 +279,7 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                     {/* Por BU */}
                     <div className="glass-card rounded-2xl p-6 border border-white/40 flex flex-col">
                         <h3 className="text-lg font-semibold mb-6 flex items-center gap-2">
-                            <div className="w-1 h-5 bg-[#DCEEAA] rounded-full"></div>
+                            <div className="w-1 h-5 bg-[#9AB85A] rounded-full"></div>
                             Recebido vs A Receber (BU)
                         </h3>
                         <div className="h-[400px] w-full">
@@ -287,10 +287,32 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                                 <BarChart data={byBU} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                    <Tooltip formatter={(val: any) => formatCurrency(Number(val))} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                <span className="font-bold" style={{ color: entry.name === 'Recebido' ? '#2D5016' : '#333' }}>
+                                                                    {formatCurrency(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                                    />
                                     <Legend />
-                                    <Bar dataKey="recebido" name="Recebido" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="recebido" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
+                                    <Bar dataKey="recebido" name="Recebido" fill="#9AB85A" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="recebido" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#2D5016', fontWeight: 600 }} />
                                     </Bar>
                                     <Bar dataKey="aReceber" name="A Receber" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="aReceber" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#333', fontWeight: 600 }} />
@@ -311,10 +333,31 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                                 <BarChart data={byQuarter} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                    <Tooltip formatter={(val: any) => formatCurrency(Number(val))} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                <span className="font-bold" style={{ color: entry.name === 'Recebido' ? '#2D5016' : '#333' }}>
+                                                                    {formatCurrency(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
                                     <Legend />
-                                    <Bar dataKey="recebido" name="Recebido" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="recebido" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
+                                    <Bar dataKey="recebido" name="Recebido" fill="#9AB85A" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="recebido" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#2D5016', fontWeight: 600 }} />
                                     </Bar>
                                     <Bar dataKey="aReceber" name="A Receber" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="aReceber" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#333', fontWeight: 600 }} />
@@ -336,25 +379,54 @@ export function ContasAReceberClient({ transactions }: ContasAReceberProps) {
                             <BarChart data={byMacroQuarter.data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                {/* Tooltip disabled as requested */}
-                                <Legend wrapperStyle={{ fontSize: '10px' }} />
-                                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                <Tooltip
+                                    content={({ active, payload, label }: any) => {
+                                        if (active && payload && payload.length) {
+                                            // Filter out zero values and sort by value descending
+                                            const filteredPayload = payload
+                                                .filter((entry: any) => entry.value > 0)
+                                                .sort((a: any, b: any) => b.value - a.value);
+
+                                            const total = filteredPayload.reduce((sum: number, entry: any) => sum + entry.value, 0);
+
+                                            return (
+                                                <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg max-w-xs">
+                                                    <p className="text-sm font-semibold mb-2 border-b pb-1">{label}</p>
+                                                    <p className="text-xs font-bold text-slate-700 mb-2">Total: {formatCurrency(total)}</p>
+                                                    <div className="max-h-[200px] overflow-y-auto">
+                                                        {filteredPayload.slice(0, 8).map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600 truncate flex-1" title={entry.name}>
+                                                                    {entry.name.length > 25 ? entry.name.substring(0, 25) + '...' : entry.name}
+                                                                </span>
+                                                                <span className="font-bold text-slate-800 flex-shrink-0">
+                                                                    {formatCompact(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                        {filteredPayload.length > 8 && (
+                                                            <p className="text-xs text-slate-400 mt-1">+{filteredPayload.length - 8} mais...</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Legend
+                                    wrapperStyle={{ fontSize: '9px', maxHeight: '80px', overflowY: 'auto' }}
+                                    formatter={(value: string) => value.length > 20 ? value.substring(0, 20) + '...' : value}
+                                />
                                 {byMacroQuarter.macros.map((macro, idx) => (
                                     <Bar
                                         key={macro}
                                         dataKey={macro}
                                         name={macro}
+                                        stackId="receitas"
                                         fill={getMacroColor(macro, idx)}
-                                        radius={[2, 2, 0, 0]}
-                                    >
-                                        <LabelList
-                                            dataKey={macro}
-                                            position="top"
-                                            formatter={(val: any) => val > 0 ? formatCompact(Number(val)) : ''}
-                                            style={{ fontSize: 12, fill: '#333', fontWeight: 600 }}
-                                        />
-                                    </Bar>
+                                    />
                                 ))}
                             </BarChart>
                         </ResponsiveContainer>

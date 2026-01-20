@@ -131,21 +131,23 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
         return { data: sorted, macros: Array.from(macroSet).sort() };
     }, [filtered]);
 
-    // Color palette for macro categories (despesas)
+    // Looker-style color palette for macro categories (despesas) - distinct colors for each
     const macroColors: Record<string, string> = {
-        "Empréstimos": "#F5A623",
-        "Pessoas (Terceiros)": "#4A4A4A",
-        "Despesas SG&A": "#E91E63",
-        "Board": "#9B59B6",
-        "Pessoas": "#5D6D7E",
-        "Impostos e Taxas": "#95A5A6",
-        "Custos da Operação": "#DCEEAA",
-        "Outros": "#BDC3C7",
+        "Empréstimos": "#F5A623",        // Orange/Yellow
+        "Pessoas (Terceiros)": "#4A4A4A", // Dark Gray
+        "Despesas SG&A": "#E91E63",       // Pink/Magenta
+        "Board": "#5C6B77",               // Blue-Gray (distinct from Receitas)
+        "Pessoas": "#5D6D7E",             // Slate Gray
+        "Impostos e Taxas": "#95A5A6",    // Light Gray
+        "Custos da Operação": "#C8DC73",  // Lime Green
+        "Receitas": "#8E44AD",            // Purple (distinct from Board)
+        "Outros": "#BDC3C7",              // Silver
     };
 
     const getMacroColor = (macro: string, index: number) => {
         if (macroColors[macro]) return macroColors[macro];
-        const fallbackColors = ["#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6", "#EC4899", "#6366F1", "#14B8A6"];
+        // Looker-style fallback colors
+        const fallbackColors = ["#3498DB", "#E67E22", "#1ABC9C", "#E74C3C", "#9B59B6", "#34495E", "#16A085", "#D35400"];
         return fallbackColors[index % fallbackColors.length];
     };
 
@@ -262,13 +264,35 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                                 <BarChart data={byBU} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                    <Tooltip formatter={(val: any) => formatCurrency(Number(val))} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                <span className="font-bold" style={{ color: entry.name === 'A Pagar' ? '#2D5016' : '#333' }}>
+                                                                    {formatCurrency(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                                    />
                                     <Legend />
                                     <Bar dataKey="pago" name="Pago" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="pago" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#333', fontWeight: 600 }} />
                                     </Bar>
-                                    <Bar dataKey="aPagar" name="A Pagar" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="aPagar" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
+                                    <Bar dataKey="aPagar" name="A Pagar" fill="#9AB85A" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="aPagar" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#2D5016', fontWeight: 600 }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -286,13 +310,34 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                                 <BarChart data={byQuarter} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                    <Tooltip formatter={(val: any) => formatCurrency(Number(val))} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                <span className="font-bold" style={{ color: entry.name === 'A Pagar' ? '#2D5016' : '#333' }}>
+                                                                    {formatCurrency(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
                                     <Legend />
                                     <Bar dataKey="pago" name="Pago" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="pago" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#333', fontWeight: 600 }} />
                                     </Bar>
-                                    <Bar dataKey="aPagar" name="A Pagar" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="aPagar" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
+                                    <Bar dataKey="aPagar" name="A Pagar" fill="#9AB85A" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="aPagar" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#2D5016', fontWeight: 600 }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -311,9 +356,43 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                             <BarChart data={byMacroQuarter.data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                {/* Tooltip disabled as requested */}
-                                <Legend wrapperStyle={{ fontSize: '10px' }} />
+                                <Tooltip
+                                    content={({ active, payload, label }: any) => {
+                                        if (active && payload && payload.length) {
+                                            // Sort by value descending
+                                            const sortedPayload = [...payload].sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+                                            const total = sortedPayload.reduce((sum: number, entry: any) => sum + Math.abs(entry.value), 0);
+
+                                            return (
+                                                <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                    <p className="text-sm font-semibold mb-2 border-b pb-1">{label}</p>
+                                                    <p className="text-xs font-bold text-slate-700 mb-2">Total: {formatCurrency(total)}</p>
+                                                    {sortedPayload.map((entry: any, index: number) => {
+                                                        const val = Math.abs(entry.value);
+                                                        const percent = total ? ((val / total) * 100).toFixed(1) : '0';
+                                                        return (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600 truncate max-w-[150px]" title={entry.name}>
+                                                                    {entry.name}
+                                                                </span>
+                                                                <div className="flex gap-2 ml-auto">
+                                                                    <span className="font-bold text-slate-800">
+                                                                        {formatCurrency(val)}
+                                                                    </span>
+                                                                    <span className="text-slate-500 font-medium min-w-[35px] text-right">
+                                                                        ({percent}%)
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
                                 <Legend wrapperStyle={{ fontSize: '10px' }} />
                                 {byMacroQuarter.macros.map((macro, idx) => (
                                     <Bar
@@ -326,8 +405,27 @@ export function ContasAPagarClient({ transactions }: ContasAPagarProps) {
                                         <LabelList
                                             dataKey={macro}
                                             position="inside"
-                                            formatter={(val: any) => val > 50000 ? formatCompact(Number(val)) : ''}
-                                            style={{ fontSize: 8, fill: '#fff', fontWeight: 500 }}
+                                            content={({ x, y, width, height, value }: any) => {
+                                                if (!value || Math.abs(value) < 50000) return null;
+                                                // Find the entry for this bar
+                                                const entry = byMacroQuarter.data.find((d: any) =>
+                                                    byMacroQuarter.macros.some(m => d[m] === value)
+                                                );
+                                                const quarterTotal = entry ? byMacroQuarter.macros.reduce((sum, m) => sum + Math.abs(entry[m] || 0), 0) : 0;
+                                                const percent = quarterTotal ? ((Math.abs(value) / quarterTotal) * 100).toFixed(0) : '0';
+                                                return (
+                                                    <text
+                                                        x={(x as number) + ((width || 0) / 2)}
+                                                        y={(y as number) + ((height || 0) / 2) + 4}
+                                                        textAnchor="middle"
+                                                        fill="#fff"
+                                                        fontSize={8}
+                                                        fontWeight={500}
+                                                    >
+                                                        {`${formatCompact(value)} (${percent}%)`}
+                                                    </text>
+                                                );
+                                            }}
                                         />
                                     </Bar>
                                 ))}

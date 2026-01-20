@@ -352,14 +352,20 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                 });
             });
 
-            // Sort rows by realized value magnitude (descending)
-            rows.sort((a, b) => Math.abs(b.realizado) - Math.abs(a.realizado));
+            // Sort rows: Receitas first (positive), then by magnitude - receitas decrescente, despesas crescente
+            rows.sort((a, b) => {
+                // Receitas (positive realizado) come first
+                if (a.realizado >= 0 && b.realizado < 0) return -1;
+                if (a.realizado < 0 && b.realizado >= 0) return 1;
+                // Within same sign, sort by absolute value descending
+                return Math.abs(b.realizado) - Math.abs(a.realizado);
+            });
 
-            // Chart Data - Top 5 Categories (Orçado vs Realizado)
-            const chartData = rows.slice(0, 5).map(r => ({
+            // Chart Data - ALL Categories (Orçado vs Forecast), not limited to 5
+            const chartData = rows.map(r => ({
                 name: r.macro.length > 15 ? r.macro.substring(0, 15) + '...' : r.macro,
                 Orçado: Math.abs(r.orcado),
-                Realizado: Math.abs(r.realizado),
+                Forecast: Math.abs(r.realizado),
                 rawRealizado: r.realizado // for reference
             }));
 
@@ -400,7 +406,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
         <PageLayout>
             <PageHeader
                 title="Budget"
-                subtitle="Orçado vs Realizado por Unidade de Negócio"
+                subtitle="Orçado vs Forecast por Unidade de Negócio"
             >
                 <div className="flex items-center gap-2">
                     <FilterDropdown
@@ -450,12 +456,12 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                         <tr className="border-b border-slate-200">
                                             <th className="text-left py-2 font-medium text-slate-500 pl-4">MacroCategoria</th>
                                             <th className="text-right py-2 font-medium text-slate-500">Orçado</th>
-                                            <th className="text-right py-2 font-medium text-slate-500">Realizado</th>
+                                            <th className="text-right py-2 font-medium text-slate-500">Forecast</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {bu.rows.length > 0 ? (
-                                            bu.rows.slice(0, 5).map((row: any, idx: number) => {
+                                            bu.rows.map((row: any, idx: number) => {
                                                 const rowClass = row.isReceber
                                                     ? 'border-l-[4px] border-l-emerald-500 bg-emerald-100/50'
                                                     : row.isPagar
@@ -510,7 +516,7 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                 {/* Right: Bar Chart */}
                                 <div className="flex flex-col justify-center h-full pt-4">
                                     <h4 className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 text-center">
-                                        Orçado vs Realizado (Top 5)
+                                        Orçado vs Forecast
                                     </h4>
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={bu.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -528,11 +534,29 @@ export function BudgetClient({ transactions, budgetData }: BudgetClientProps) {
                                             />
                                             <Tooltip
                                                 cursor={{ fill: '#f1f5f9' }}
-                                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                                formatter={(value: any) => formatCompact(Number(value || 0))}
+                                                content={({ active, payload, label }: any) => {
+                                                    if (active && payload && payload.length) {
+                                                        const sortedPayload = [...payload].sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+                                                        return (
+                                                            <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg min-w-[150px]">
+                                                                <p className="text-xs font-semibold mb-2 border-b pb-1 text-slate-500">{label}</p>
+                                                                {sortedPayload.map((entry: any, index: number) => (
+                                                                    <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                        <span className="font-medium text-slate-600 truncate">{entry.name}:</span>
+                                                                        <span className="font-bold text-slate-800 ml-auto">
+                                                                            {formatCompact(Number(entry.value))}
+                                                                        </span>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    }
+                                                    return null;
+                                                }}
                                             />
-                                            <Bar dataKey="Orçado" fill="#e2e8f0" radius={[4, 4, 0, 0]} barSize={20} />
-                                            <Bar dataKey="Realizado" fill="#64748b" radius={[4, 4, 0, 0]} barSize={20} />
+                                            <Bar dataKey="Orçado" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={20} />
+                                            <Bar dataKey="Forecast" fill="#475569" radius={[4, 4, 0, 0]} barSize={20} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>

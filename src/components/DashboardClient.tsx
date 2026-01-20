@@ -167,6 +167,35 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
         return colors[index % colors.length];
     }
 
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            // Sort by value descending (larger values on top)
+            const sortedPayload = [...payload].sort((a, b) => {
+                const valA = typeof a.value === 'number' ? Math.abs(a.value) : 0;
+                const valB = typeof b.value === 'number' ? Math.abs(b.value) : 0;
+                return valB - valA;
+            });
+
+            return (
+                <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                    <p className="text-sm font-semibold mb-2">{label}</p>
+                    {sortedPayload.map((entry: any, index: number) => (
+                        <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                            <span className="font-medium text-slate-600">{entry.name}:</span>
+                            <span className="font-bold" style={{ color: entry.name === 'Receita' ? '#2D5016' : '#333' }}>
+                                {entry.name === 'Margem'
+                                    ? `${Number(entry.value).toFixed(2)}%`
+                                    : formatCurrency(Number(entry.value))}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+        return null;
+    };
+
     return (
         <PageLayout>
             {/* Debug Indicator - REMOVE IN PROD */}
@@ -271,13 +300,13 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="bu" axisLine={false} tickLine={false} tick={{ fill: '#1A1A1A', fontSize: 11, fontWeight: 500 }} />
                                     <YAxis yAxisId="left" orientation="left" tickFormatter={(val) => new Intl.NumberFormat('en', { notation: "compact" }).format(val)} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                                    <YAxis yAxisId="right" orientation="right" tickFormatter={(val) => `${val.toFixed(0)}%`} tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                                    <Tooltip formatter={(val: any, name: any) => name === 'Margem' ? `${Number(val).toFixed(2)}%` : formatCurrency(Number(val))} />
+                                    <YAxis yAxisId="right" orientation="right" tick={false} axisLine={false} tickLine={false} />
+                                    <Tooltip content={<CustomTooltip />} />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
 
                                     <Bar yAxisId="left" dataKey="receita" name="Receita" fill="#166534" radius={[4, 4, 0, 0]} barSize={20} />
                                     <Bar yAxisId="left" dataKey="despesa" name="Despesa" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
-                                    <Bar yAxisId="left" dataKey="resultado" name="Resultado" fill="#86EFAC" radius={[4, 4, 0, 0]} barSize={20} />
+                                    <Bar yAxisId="left" dataKey="resultado" name="Resultado" fill="#DCEEAA" radius={[4, 4, 0, 0]} barSize={20} />
                                     <Line yAxisId="right" type="monotone" dataKey="margem" name="Margem" stroke="#4A5568" strokeWidth={2} dot={{ r: 3 }} />
                                 </ComposedChart>
                             </ResponsiveContainer>
@@ -297,10 +326,32 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                 <BarChart data={tableData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="bu" axisLine={false} tickLine={false} tick={{ fill: '#1A1A1A', fontSize: 11, fontWeight: 500 }} />
-                                    <Tooltip formatter={(val: any) => formatCurrency(Number(val))} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                <span className="font-bold" style={{ color: entry.name === 'Receita' ? '#2D5016' : '#333' }}>
+                                                                    {formatCurrency(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                                    />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                                    <Bar dataKey="receita" name="Receita" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="receita" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
+                                    <Bar dataKey="receita" name="Receita" fill="#9AB85A" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="receita" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#2D5016', fontWeight: 600 }} />
                                     </Bar>
                                     <Bar dataKey="despesa" name="Despesa / Custo" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="despesa" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#5F6368', fontWeight: 600 }} />
@@ -320,10 +371,31 @@ export function DashboardClient({ transactions }: DashboardClientProps) {
                                 <BarChart data={quarterData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#1A1A1A', fontSize: 11, fontWeight: 500 }} />
-                                    <Tooltip formatter={(val: any) => formatCurrency(Number(val))} cursor={{ fill: 'rgba(0,0,0,0.02)' }} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                <span className="font-bold" style={{ color: entry.name === 'Receita' ? '#2D5016' : '#333' }}>
+                                                                    {formatCurrency(Number(entry.value))}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
                                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                                    <Bar dataKey="receita" name="Receita" fill="#DCEEAA" radius={[4, 4, 0, 0]}>
-                                        <LabelList dataKey="receita" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#3A4A1C', fontWeight: 600 }} />
+                                    <Bar dataKey="receita" name="Receita" fill="#9AB85A" radius={[4, 4, 0, 0]}>
+                                        <LabelList dataKey="receita" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#2D5016', fontWeight: 600 }} />
                                     </Bar>
                                     <Bar dataKey="despesa" name="Despesa / Custo" fill="#5F6368" radius={[4, 4, 0, 0]}>
                                         <LabelList dataKey="despesa" position="top" formatter={(val: any) => formatCompact(Number(val))} style={{ fontSize: 10, fill: '#5F6368', fontWeight: 600 }} />

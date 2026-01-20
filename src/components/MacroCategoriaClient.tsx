@@ -6,7 +6,7 @@ import {
     BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
     CartesianGrid, Legend, Cell, LabelList, ReferenceLine
 } from "recharts";
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { AnalysisBoard } from "@/components/AnalysisBoard";
 import { DateRangePicker } from "@/components/ui/DateRangePicker";
 import { DateRange } from "react-day-picker";
@@ -29,6 +29,9 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
     // Pagination for table
     const [page, setPage] = useState(0);
     const rowsPerPage = 10;
+
+    // Sorting for table
+    const [sortOrder, setSortOrder] = useState<'desc' | 'asc' | 'none'>('none');
 
     const filtered = useMemo(() => {
         return transactions.filter(t => {
@@ -82,13 +85,19 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
 
     const tableData = useMemo(() => {
         const total = filtered.reduce((acc, t) => acc + t.amount, 0);
-        return aggregated
-            .map((item: any) => ({
-                ...item,
-                percent: total ? (item.value / total) * 100 : 0
-            }))
-            .sort((a, b) => b.value - a.value);
-    }, [filtered, aggregated]);
+        const mapped = aggregated.map((item: any) => ({
+            ...item,
+            percent: total ? (item.value / total) * 100 : 0
+        }));
+
+        // Apply sorting based on sortOrder
+        if (sortOrder === 'desc') {
+            return mapped.sort((a, b) => b.value - a.value);
+        } else if (sortOrder === 'asc') {
+            return mapped.sort((a, b) => a.value - b.value);
+        }
+        return mapped.sort((a, b) => b.value - a.value); // default desc
+    }, [filtered, aggregated, sortOrder]);
 
     // Insights
     const insights = useMemo(() => {
@@ -105,7 +114,35 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
     const formatCurrency = (val: number) =>
         new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val);
 
-    const colors = ["#2E7D32", "#E6EE9C", "#616161", "#F48FB1", "#81C784", "#FFD54F", "#90CAF9"];
+    const formatCompact = (val: number) =>
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", maximumFractionDigits: 1 }).format(val);
+
+    // Looker-style color palette for better visual distinction
+    const lookerColors: Record<string, string> = {
+        "Board": "#5C6B77",
+        "Custos da Operação": "#C8DC73",
+        "Despesas SG&A": "#E91E63",
+        "Empréstimos": "#F5A623",
+        "Impostos e Taxas": "#9E9E9E",
+        "Pessoas": "#5D6D7E",
+        "Pessoas (Terceiros)": "#4A4A4A",
+        "Receitas": "#8E44AD", // Distinct purple for Receitas
+        "Outros": "#BDC3C7",
+    };
+
+    const getMacroColor = (macro: string, index: number) => {
+        if (lookerColors[macro]) return lookerColors[macro];
+        const fallbackColors = ["#3498DB", "#E67E22", "#1ABC9C", "#E74C3C", "#9B59B6", "#34495E", "#16A085", "#D35400"];
+        return fallbackColors[index % fallbackColors.length];
+    };
+
+    const toggleSortOrder = () => {
+        if (sortOrder === 'none' || sortOrder === 'asc') {
+            setSortOrder('desc');
+        } else {
+            setSortOrder('asc');
+        }
+    };
 
 
     const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
@@ -180,15 +217,68 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                                 <BarChart data={buMacroData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#666', fontSize: 11 }} />
-                                    <Tooltip formatter={(val: number | undefined) => formatCurrency(val || 0)} />
+                                    <Tooltip
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+                                                // Calculate total for this BU (label is BU name)
+                                                const total = sortedPayload.reduce((sum, entry) => sum + Math.abs(entry.value), 0);
+
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg max-w-[200px]">
+                                                        <p className="text-sm font-semibold mb-2 border-b pb-1 truncate">{label}</p>
+                                                        <p className="text-xs font-bold text-slate-700 mb-2">Total: {formatCompact(total)}</p>
+                                                        <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
+                                                            {sortedPayload.map((entry: any, index: number) => {
+                                                                const val = Math.abs(entry.value);
+                                                                const percent = total ? ((val / total) * 100).toFixed(0) : '0';
+                                                                if (val === 0) return null;
+
+                                                                return (
+                                                                    <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                                                        <span className="font-medium text-slate-600 truncate flex-1" title={entry.name}>{entry.name}</span>
+                                                                        <span className="font-bold text-slate-800 flex-shrink-0">
+                                                                            {formatCompact(val)} <span className="text-[10px] text-slate-400 font-normal">({percent}%)</span>
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                                    />
                                     <Legend />
                                     {Array.from(new Set(transactions.map(t => t.macroCategory || "N/D"))).slice(0, 10).map((macro, idx) => (
-                                        <Bar key={macro} dataKey={macro} stackId="a" fill={colors[idx % colors.length]} radius={[0, 0, 0, 0]}>
+                                        <Bar key={macro} dataKey={macro} stackId="a" fill={getMacroColor(macro, idx)} radius={[0, 0, 0, 0]}>
                                             <LabelList
                                                 dataKey={macro}
                                                 position="center"
-                                                formatter={(val: any) => val > 50000 ? new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 0 }).format(val) : ''}
-                                                style={{ fontSize: 9, fill: '#fff', fontWeight: 600 }}
+                                                content={({ x, y, width, height, value, name }: any) => {
+                                                    if (!value || Math.abs(value) < 50000) return null;
+                                                    // Calculate percentage for this segment
+                                                    const entry = buMacroData.find((d: any) => Object.values(d).includes(value));
+                                                    const buTotal = entry ? Object.keys(entry)
+                                                        .filter(k => k !== 'name')
+                                                        .reduce((sum, k) => sum + Math.abs(entry[k] || 0), 0) : 0;
+                                                    const percent = buTotal ? ((Math.abs(value) / buTotal) * 100).toFixed(0) : '0';
+                                                    return (
+                                                        <text
+                                                            x={(x as number) + ((width || 0) / 2)}
+                                                            y={(y as number) + ((height || 0) / 2) + 4}
+                                                            textAnchor="middle"
+                                                            fill="#fff"
+                                                            fontSize={8}
+                                                            fontWeight={500}
+                                                        >
+                                                            {`${new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 0 }).format(value)} (${percent}%)`}
+                                                        </text>
+                                                    );
+                                                }}
                                             />
                                         </Bar>
                                     ))}
@@ -211,7 +301,21 @@ export function MacroCategoriaClient({ transactions }: MacroCategoriaProps) {
                             <thead className="sticky top-0 z-10">
                                 <tr className="bg-gradient-to-r from-slate-100 to-slate-50">
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-left">Categoria</th>
-                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">Valor</th>
+                                    <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">
+                                        <button
+                                            onClick={toggleSortOrder}
+                                            className="flex items-center gap-1 ml-auto hover:text-slate-700 transition-colors"
+                                        >
+                                            Valor
+                                            {sortOrder === 'desc' ? (
+                                                <ArrowDown className="w-3 h-3" />
+                                            ) : sortOrder === 'asc' ? (
+                                                <ArrowUp className="w-3 h-3" />
+                                            ) : (
+                                                <ArrowUpDown className="w-3 h-3 opacity-50" />
+                                            )}
+                                        </button>
+                                    </th>
                                     <th className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-slate-500 text-right">% do Total</th>
                                 </tr>
                             </thead>

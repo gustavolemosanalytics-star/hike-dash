@@ -191,18 +191,66 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
     const colors = ["#2E7D32", "#E6EE9C", "#616161", "#F48FB1", "#81C784", "#FFD54F", "#90CAF9"];
 
     const allBUs = useMemo(() => Array.from(new Set(transactions.map(t => t.bu || "N/D"))).sort(), [transactions]);
-    const allProjects = useMemo(() => Array.from(new Set(transactions.map(t => t.project || "N/D"))).sort(), [transactions]);
     const allClusters = useMemo(() => Array.from(new Set(transactions.map(t => t.cluster || "N/D"))).sort(), [transactions]);
+
+    // Filtered projects based on selected BU and Cluster (cascading filter)
+    const filteredProjects = useMemo(() => {
+        let projectTransactions = transactions;
+
+        // Filter by BU if selected
+        if (selectedBU !== "All") {
+            projectTransactions = projectTransactions.filter(t => t.bu === selectedBU);
+        }
+
+        // Filter by Cluster if selected
+        if (selectedCluster !== "All") {
+            projectTransactions = projectTransactions.filter(t => t.cluster === selectedCluster);
+        }
+
+        return Array.from(new Set(projectTransactions.map(t => t.project || "N/D"))).sort();
+    }, [transactions, selectedBU, selectedCluster]);
+
+    // Reset project selection when BU or Cluster changes and current selection is not in filtered list
+    const handleBUChange = (value: string) => {
+        setSelectedBU(value);
+        // Reset project if it's not in the new filtered list
+        if (selectedProject !== "All") {
+            const newFilteredProjects = transactions
+                .filter(t => value === "All" || t.bu === value)
+                .filter(t => selectedCluster === "All" || t.cluster === selectedCluster)
+                .map(t => t.project || "N/D");
+            if (!newFilteredProjects.includes(selectedProject)) {
+                setSelectedProject("All");
+            }
+        }
+    };
+
+    const handleClusterChange = (value: string) => {
+        setSelectedCluster(value);
+        // Reset project if it's not in the new filtered list
+        if (selectedProject !== "All") {
+            const newFilteredProjects = transactions
+                .filter(t => selectedBU === "All" || t.bu === selectedBU)
+                .filter(t => value === "All" || t.cluster === value)
+                .map(t => t.project || "N/D");
+            if (!newFilteredProjects.includes(selectedProject)) {
+                setSelectedProject("All");
+            }
+        }
+    };
+
+    const formatCompact = (val: number) =>
+        new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: "compact", maximumFractionDigits: 1 }).format(val);
 
     return (
         <PageLayout>
             <PageHeader
                 title="Projetos e Clusters"
-                subtitle="Análise de rentabilidade e desempenho"
+                subtitle="Performance por projeto e agrupamento estratégico"
             >
-                <FilterDropdown label="BU" value={selectedBU} onChange={setSelectedBU} options={allBUs} />
-                <FilterDropdown label="Projeto" value={selectedProject} onChange={setSelectedProject} options={allProjects} />
-                <FilterDropdown label="Cluster" value={selectedCluster} onChange={setSelectedCluster} options={allClusters} />
+                <FilterDropdown label="BU" value={selectedBU} onChange={handleBUChange} options={allBUs} />
+                <FilterDropdown label="Projeto" value={selectedProject} onChange={setSelectedProject} options={filteredProjects} />
+                <FilterDropdown label="Cluster" value={selectedCluster} onChange={handleClusterChange} options={allClusters} />
                 <DateRangePicker date={dateRange} setDate={setDateRange} />
             </PageHeader>
 
@@ -233,8 +281,27 @@ export function ProjetoClusterClient({ transactions }: ProjetoClusterProps) {
                                     <XAxis type="number" hide />
                                     <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                                     <Tooltip
-                                        formatter={(val: number | undefined) => formatCurrency(val || 0)}
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2 border-b pb-1">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => (
+                                                            <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                <span className="font-medium text-slate-600">Resultado:</span>
+                                                                <span className={`font-bold ml-auto ${entry.value >= 0 ? 'text-emerald-700' : 'text-red-600'}`}>
+                                                                    {formatCurrency(entry.value)}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                        cursor={{ fill: 'rgba(0,0,0,0.02)' }}
                                     />
                                     <ReferenceLine x={0} stroke="#999" strokeWidth={1} />
                                     <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={24}>

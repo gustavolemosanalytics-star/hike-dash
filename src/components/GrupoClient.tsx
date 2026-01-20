@@ -57,8 +57,20 @@ export function GrupoClient({ transactions }: GrupoProps) {
 
         return arr.map((item: any) => ({
             ...item,
-            percent: totalVolume ? (item.value / totalVolume) * 100 : 0
+            percent: totalVolume ? (Math.abs(item.value) / totalVolume) * 100 : 0
         })).sort((a: any, b: any) => b.value - a.value);
+    }, [filtered]);
+
+    // Calculate total for percentage in timeline
+    const timelineTotals = useMemo(() => {
+        const totals = new Map();
+        filtered.forEach(t => {
+            if (!t.date) return;
+            const monthKey = t.date.substring(0, 7);
+            if (!totals.has(monthKey)) totals.set(monthKey, 0);
+            totals.set(monthKey, totals.get(monthKey) + Math.abs(t.amount));
+        });
+        return totals;
     }, [filtered]);
 
     const timelineData = useMemo(() => {
@@ -137,10 +149,12 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                         ))}
                                         <LabelList
                                             dataKey="value"
-                                            content={({ x, y, width, height, value }: any) => {
+                                            content={({ x, y, width, height, value, index }: any) => {
                                                 const isNegative = value < 0;
                                                 const labelX = isNegative ? (x as number) - 8 : (x as number) + (width || 0) + 8;
                                                 const anchor = isNegative ? 'end' : 'start';
+                                                const entry = groupData[index];
+                                                const percent = entry ? entry.percent.toFixed(1) : '0';
                                                 return (
                                                     <text
                                                         x={labelX}
@@ -150,7 +164,7 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                                         fontSize={11}
                                                         fontWeight={500}
                                                     >
-                                                        {formatCurrency(value || 0)}
+                                                        {`${formatCurrency(value || 0)} (${percent}%)`}
                                                     </text>
                                                 );
                                             }}
@@ -170,13 +184,57 @@ export function GrupoClient({ transactions }: GrupoProps) {
                                     <XAxis dataKey="formattedName" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: '#6B7280' }} />
                                     <YAxis tickLine={false} axisLine={false} tickFormatter={(val) => new Intl.NumberFormat('pt-BR', { notation: 'compact', compactDisplay: 'short' }).format(val)} tick={{ fontSize: 11, fill: '#6B7280' }} />
                                     <Tooltip
-                                        formatter={(val: number | undefined) => formatCurrency(val || 0)}
-                                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+                                        content={({ active, payload, label }: any) => {
+                                            if (active && payload && payload.length) {
+                                                const sortedPayload = [...payload].sort((a: any, b: any) => Math.abs(b.value) - Math.abs(a.value));
+                                                return (
+                                                    <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-lg">
+                                                        <p className="text-sm font-semibold mb-2 border-b pb-1 text-slate-700">{label}</p>
+                                                        {sortedPayload.map((entry: any, index: number) => {
+                                                            const val = Math.abs(entry.value);
+                                                            return (
+                                                                <div key={index} className="flex items-center gap-2 text-xs mb-1">
+                                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                    <span className="font-medium text-slate-600">{entry.name}:</span>
+                                                                    <span className="font-bold text-slate-800 ml-auto">
+                                                                        {formatCurrency(val)}
+                                                                    </span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
                                     />
                                     <Legend wrapperStyle={{ paddingTop: '10px' }} />
                                     <ReferenceLine y={0} stroke="#999" strokeWidth={1} />
                                     {['Variável', 'Fixo', 'N/D'].map((grp, idx) => (
-                                        <Bar key={grp} dataKey={grp} fill={idx === 0 ? '#2E7D32' : idx === 1 ? '#E6EE9C' : '#9E9E9E'} radius={[4, 4, 0, 0]} />
+                                        <Bar key={grp} dataKey={grp} fill={idx === 0 ? '#2E7D32' : idx === 1 ? '#E6EE9C' : '#9E9E9E'} radius={[4, 4, 0, 0]}>
+                                            <LabelList
+                                                dataKey={grp}
+                                                position="center"
+                                                content={({ x, y, width, height, value, payload }: any) => {
+                                                    if (!value || Math.abs(value) < 10000) return null;
+                                                    const monthKey = payload?.name;
+                                                    const monthTotal = payload ? ['Variável', 'Fixo', 'N/D'].reduce((sum, g) => sum + Math.abs(payload[g] || 0), 0) : 0;
+                                                    const percent = monthTotal ? ((Math.abs(value) / monthTotal) * 100).toFixed(0) : '0';
+                                                    return (
+                                                        <text
+                                                            x={(x as number) + ((width || 0) / 2)}
+                                                            y={(y as number) + ((height || 0) / 2) + 4}
+                                                            textAnchor="middle"
+                                                            fill={idx === 1 ? '#333' : '#fff'}
+                                                            fontSize={9}
+                                                            fontWeight={500}
+                                                        >
+                                                            {`${percent}%`}
+                                                        </text>
+                                                    );
+                                                }}
+                                            />
+                                        </Bar>
                                     ))}
                                 </BarChart>
                             </ResponsiveContainer>
